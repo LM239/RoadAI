@@ -1,0 +1,8 @@
+pandas
+ipykernel
+numpy
+scikit-learn
+matplotlib
+laspy
+pydantic
+pyproj
