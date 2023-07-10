@@ -7,5 +7,6 @@ laspy
 pydantic
 pyproj
 h5py
-folium
+ipyleaflet
+opencv-python
 geopy
