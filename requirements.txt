@@ -6,3 +6,4 @@ matplotlib
 laspy
 pydantic
 pyproj
+geopy
