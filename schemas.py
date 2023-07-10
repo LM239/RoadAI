@@ -20,9 +20,12 @@ class Trip(BaseModel):
     positions: list[Position]
 
     @property
+    def latlons(self) -> list[tuple[float, float]]:
+        return [(pos.lat, pos.lon) for pos in self.positions]
+
+    @property
     def length(self) -> float:
-        coords = [(pos.lat, pos.lon) for pos in self.positions]
-        return geopy.distance.geodesic(*coords).km
+        return geopy.distance.geodesic(*self.latlons).km
 
     @property
     def start_date(self) -> datetime:

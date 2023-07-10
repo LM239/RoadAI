@@ -10,7 +10,7 @@ class TripsLoader:
     """
 
     def __init__(self, datestring: str) -> None:
-        self._machines: list[Machine] = []
+        self._machines: dict[int, Machine] = {}
 
         file_name = f'{datestring}.csv'
 
@@ -63,11 +63,11 @@ class TripsLoader:
 
             machine = Machine(machine_type=machine_type,
                               machine_id=machine_id, machine_name=machine_name, trips=trips)
-            self._machines.append(machine)
+            self._machines[machine_id] = machine
 
 
-if __name__ == "__main__":
-    loader = TripsLoader('03-07-2022')
-    ls = np.array(
-        [trip.length for machine in loader._machines for trip in machine.trips])
-    print(np.min(ls), np.max(ls), np.median(ls), np.mean(ls), np.std(ls))
+# if __name__ == "__main__":
+    # loader = TripsLoader('03-07-2022')
+    # ls = np.array(
+    #     [trip.length for machine in loader._machines for trip in machine.trips])
+    # print(np.min(ls), np.max(ls), np.median(ls), np.mean(ls), np.std(ls))

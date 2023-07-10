@@ -6,3 +6,6 @@ matplotlib
 laspy
 pydantic
 pyproj
+h5py
+folium
+geopy
