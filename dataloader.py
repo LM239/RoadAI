@@ -2,7 +2,8 @@ import pandas as pd
 from datetime import date
 from schemas import Machine, Trip, Position
 import numpy as np
-
+from utils import load_csv_from_date
+from typing import Literal
 
 class TripsLoader:
     """
@@ -12,19 +13,7 @@ class TripsLoader:
     def __init__(self, datestring: str) -> None:
         self._machines: dict[int, Machine] = {}
 
-        file_name = f'{datestring}.csv'
-
-        trip_df = pd.read_csv(f'data/GPSData/trips/' +
-                              file_name, index_col=None, header=0)
-        info_df = pd.read_csv(f'data/GPSData/tripsInfo/' +
-                              file_name, index_col=None, header=0)
-
-        trip_df["Timestamp"] = pd.to_datetime(
-            trip_df["Timestamp"], errors="coerce")
-        info_df = info_df[~info_df['DumperMachineNumber'].isna()]
-
-        if 'DumperMachineName' not in info_df:
-            info_df['DumperMachineName'] = None
+        info_df, trip_df = load_csv_from_date(f'{datestring}.csv')
 
         grouped_df = trip_df.groupby("TripLogId")
         unique = set(trip_df["TripLogId"].unique())
@@ -40,7 +29,7 @@ class TripsLoader:
 
         for machine_id in info_df['DumperMachineNumber'].unique():
             machine_df: pd.DataFrame = machine_groups.get_group(
-                machine_id).copy().reset_index(drop=True)
+                machine_id).reset_index(drop=True)
             if len(machine_df) == 0:
                 continue
 
@@ -65,6 +54,29 @@ class TripsLoader:
                               machine_id=machine_id, machine_name=machine_name, trips=trips)
             self._machines[machine_id] = machine
 
+
+    @property
+    def machines(self) -> dict[int, Machine]:
+        return self._machines
+    
+    def sorted_machines(self, sort_by: Literal["trip_count", "trip_length", "total_quantity"], descending_order: bool=True) -> list[Machine]:
+        def sort_by_count(machine: Machine):
+            return len(machine.trips)
+        def sort_by_length(machine: Machine):
+            return sum(trip.length for trip in machine.trips)
+        def sort_by_quantity(machine: Machine):
+            return sum(trip.quantity for trip in machine.trips)
+        
+        key = (sort_by_count if sort_by == "trip_count" else 
+               (sort_by_length if sort_by == "trip_length" else sort_by_quantity))
+
+        return sorted(self._machines.values(), key=key, reverse=not descending_order)
+
+    def filter_machine_type(self, m_type: Literal["Dumper", "Truck", "Dumpbil"]) -> dict[int, Machine]:
+        def filter_by_type(pair: tuple[int, Machine]):
+            _, machine = pair
+            return machine.machine_type == m_type
+        return dict(filter(filter_by_type, self._machines.values()))
 
 # if __name__ == "__main__":
     # loader = TripsLoader('03-07-2022')
