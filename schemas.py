@@ -17,9 +17,12 @@ class Position(BaseModel):
 
 
 class Trip(BaseModel):
+    trip_id: str
     load: Literal['Stone', 'Equipment', 'Soil', '4']
     quantity: float
     positions: list[Position]
+    dump_latlon: tuple[float, float]
+    load_latlon: tuple[float, float]
 
     @computed_field
     @cached_property

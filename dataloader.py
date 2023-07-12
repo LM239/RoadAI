@@ -44,8 +44,11 @@ class TripsLoader:
                 positions = [Position(timestamp=timestamp, lat=lat, lon=lon, uncertainty=uncertainty)
                              for timestamp, lat, lon, uncertainty in row["route"]]
                 trip = Trip(
+                    trip_id=row["TripLogId"],
                     load=row['MassTypeMaterial'],
                     quantity=row['Quantity'],
+                    dump_latlon=(row["DumpLatitude"], row["DumpLongitude"]),
+                    load_latlon=(row["LoadLatitude"], row["LoadLongitude"]),
                     positions=positions,
                 )
                 trips.append(trip)
