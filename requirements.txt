@@ -12,3 +12,4 @@ opencv-python
 geopy
 plotly
 nbformat
+folium
