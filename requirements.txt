@@ -10,3 +10,5 @@ h5py
 ipyleaflet
 opencv-python
 geopy
+plotly
+nbformat
