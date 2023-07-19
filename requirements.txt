@@ -13,3 +13,4 @@ geopy
 plotly
 nbformat
 folium
+tqdm
