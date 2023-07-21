@@ -76,6 +76,12 @@ class Machine(BaseModel):
     def total_duration(self) -> float:
         # The combined duration (in minutes) of each trip
         return sum(trip.duration for trip in self.trips)
+    
+    @computed_field
+    @cached_property
+    def total_quantity(self) -> float:
+        # The combined quantity of each trip
+        return sum(trip.quantity for trip in self.trips)
 
     @property
     def soil_trips(self):
