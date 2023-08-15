@@ -53,7 +53,7 @@ class Trip(BaseModel):
 
 class Machine(BaseModel):
     machine_type: Literal['Truck', 'Dumper', 'Tippbil']
-    machine_id: int
+    machine_id: int | str  # If looking at 2023 data needs to be string
     machine_name: str | None
     trips: list[Trip]
 
@@ -76,7 +76,7 @@ class Machine(BaseModel):
     def total_duration(self) -> float:
         # The combined duration (in minutes) of each trip
         return sum(trip.duration for trip in self.trips)
-    
+
     @computed_field
     @cached_property
     def total_quantity(self) -> float:
