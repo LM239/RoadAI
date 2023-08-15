@@ -48,17 +48,23 @@ class TripsLoader:
             for _, row in machine_df.iterrows():
                 row.to_dict()
                 # Extract all positions from the route for the given row/trip
-                positions = [Position(timestamp=timestamp, lat=lat, lon=lon, uncertainty=uncertainty)
-                             for timestamp, lat, lon, uncertainty in row["route"]]
-                trip = Trip(
-                    trip_id=row["TripLogId"],
-                    load=row['MassTypeMaterial'],
-                    quantity=row['Quantity'],
-                    dump_latlon=(row["DumpLatitude"], row["DumpLongitude"]),
-                    load_latlon=(row["LoadLatitude"], row["LoadLongitude"]),
-                    positions=positions,
-                )
-                trips.append(trip)
+                try:
+                    positions = [Position(timestamp=timestamp, lat=lat, lon=lon, uncertainty=uncertainty)
+                                 for timestamp, lat, lon, uncertainty in row["route"]]
+                    trip = Trip(
+                        trip_id=row["TripLogId"],
+                        load=row['MassTypeMaterial'],
+                        quantity=row['Quantity'],
+                        dump_latlon=(row["DumpLatitude"],
+                                     row["DumpLongitude"]),
+                        load_latlon=(row["LoadLatitude"],
+                                     row["LoadLongitude"]),
+                        positions=positions,
+                    )
+                    trips.append(trip)
+                except:
+                    print("Could not add row, row was type: ", type(
+                        row["route"]), " but expected ndarray.")
 
             # Save as a Machine model
             machine = Machine(machine_type=machine_type,
