@@ -272,5 +272,6 @@ class AutomatedDumpPoints:
 if __name__ == "__main__":
     autDump = AutomatedDumpPoints(datestring='03-08-2022',
                                   cluster_datestring='03-07-2022')
+    autDump.plot_machine_prediction(22)
 
 # %%
