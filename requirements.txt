@@ -14,4 +14,3 @@ plotly
 nbformat
 folium
 tqdm
-table
