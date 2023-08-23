@@ -25,12 +25,12 @@ def within_activity_seconds(target_timestamp, timestamp_list, time_threshold):
     return False
 
 
-class points_times(BaseModel):
-    points: list[tuple[float, float]] = []
+class Points_times(BaseModel):
+    points: list[tuple[float, float]] = []  # Latlons
     times: list[datetime] = []
 
 
-class criteria(BaseModel):
+class Criteria(BaseModel):
     ###############################################################
     ###########Criterias for prediction of load and dump###########
     ###############################################################
@@ -89,35 +89,69 @@ class criteria(BaseModel):
     )
 
 
-class predicted_load_dump(BaseModel):
-    load: points_times = points_times()
-    dump: points_times = points_times()
+class Predicted_load_dump(BaseModel):
+    load: Points_times = Points_times()
+    dump: Points_times = Points_times()
 
 
-class stats(BaseModel):  # Represents actual data
+class Stats(BaseModel):  # Represents actual data
     all_positions: list[Position] = []  # Positions recorded during a day
-    load: points_times = points_times()  # Load points and times
-    dump: points_times = points_times()  # Dump points and times
+    load: Points_times = Points_times()  # Load points and times
+    dump: Points_times = Points_times()  # Dump points and times
     day_stats_set: bool = False  # If the three day statistics have been set
     day_speeds: list[float] = []  # Speeds
     day_dists: list[float] = []  # Distances between each recording
     day_times: list[datetime] = []  # Timestamp for two above lists
-    inner_prods: list[
-        float
-    ] = []  # Inner product of consecutive normalized driving vectors
-    list_of_idle_times: list[points_times] = []  # List of all times idle during a day
+    inner_prods: list[float] = []  # Inner product of consecutive normalized vectors
+    list_of_idle_times: list[Points_times] = []  # List of all times idle during a day
 
 
-class automated_load_dump_for_machine:
+class Automated_load_dump_for_machine:
+    """Compute load, dump and idle time for selected machine on given day
+
+    ...
+
+    Attributes
+    ----------
+    machine : Machine
+    predicted : Predicted_load_dump
+        Class keeping track of predicted load and dump points(latlons) and times
+    stats : Stats
+        Class with actual and computed values
+    criterias: Criteria
+        Class with parameters for algorithms computing load/dump/idle time
+    load_cluster_centers: List of (lat,lons)
+        Used to determine if machine is in proximity to normal load area
+    dump_cluster_centers: List of (lat,lons)
+        Used to determine if machine is in proximity to normal dump area
+
+    Methods
+    -------
+    generate_load_dump_clusters(day: str):
+        Generates cluster centers, usually want day before
+    predict_loaddump():
+        Predicts/computes load and dump points and times
+    prediction_time_plot():
+        Time plot of actual versus predicted load and dump
+    prediction_gantt_plot():
+        Gantt plot of actual and predicted trips
+    find_idle_time():
+        Computes times that are idle during day
+    idle_report():
+        Short summary of idle statistics, and heatmap of positions
+    idle_time_plot():
+        Time plot of where machine was idle, similar to prediction_time_plot
+    """
+
     def __init__(self, day: str, machine_nb: int) -> None:
         # Loading gps data for selected day and day before
         print("Loading data for day...")
         trip = dataloader.TripsLoader(day)
 
         self.machine = trip._machines[machine_nb]
-        self.predicted = predicted_load_dump()
-        self.stats = stats()
-        self.criterias = criteria()
+        self.predicted = Predicted_load_dump()
+        self.stats = Stats()
+        self.criterias = Criteria()
 
         all_pos = [trips.positions for trips in self.machine.trips]
         self.stats.all_positions = [item for sublist in all_pos for item in sublist]
@@ -643,7 +677,7 @@ class automated_load_dump_for_machine:
     def find_idle_time(self):
         print("Computing idle times...")
         # A list containing idle periods before passed to object
-        temp_idle_list = points_times()
+        temp_idle_list = Points_times()
         list_of_all_times = [pos.timestamp for pos in self.stats.all_positions]
         list_of_all_pos = [(pos.lat, pos.lon) for pos in self.stats.all_positions]
 
@@ -707,14 +741,14 @@ class automated_load_dump_for_machine:
                 ):
                     if len(temp_idle_list.points) > 0:
                         self.stats.list_of_idle_times.append(temp_idle_list)
-                        temp_idle_list = points_times()  # Re-initialize
+                        temp_idle_list = Points_times()  # Re-initialize
                 # Then check if there are other paramters saying we are not idle
                 elif (
                     speed_kmh > self.criterias.idle_speed_limit
                 ):  # Could be merged with above if stays like this.
                     if len(temp_idle_list.points) > 0:
                         self.stats.list_of_idle_times.append(temp_idle_list)
-                        temp_idle_list = points_times()  # Re-initialize
+                        temp_idle_list = Points_times()  # Re-initialize
                 elif (
                     speed_kmh < self.criterias.idle_speed_limit
                     and self.criterias.avg_speed_limit < current_avg_speed
@@ -855,10 +889,11 @@ class automated_load_dump_for_machine:
 
 if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY
-    automated_for_given_machine = automated_load_dump_for_machine(day, 30)
-    automated_for_given_machine.predict()
-    automated_for_given_machine.time_plot()
-    automated_for_given_machine.gantt_plot()
+    print(Automated_load_dump_for_machine.__doc__)
+    automated_for_given_machine = Automated_load_dump_for_machine(day, 30)
+    automated_for_given_machine.predict_loaddump()
+    automated_for_given_machine.prediction_time_plot()
+    automated_for_given_machine.prediction_gantt_plot()
     automated_for_given_machine.find_idle_time()
     automated_for_given_machine.idle_time_plot()
     automated_for_given_machine.idle_report()
