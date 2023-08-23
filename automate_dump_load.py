@@ -11,37 +11,82 @@ from sklearn.cluster import KMeans
 from tqdm import tqdm
 import pandas as pd
 from schemas import Position
+import ipyleaflet as L
 
 
-class criteria(BaseModel):
-    optimal_K: int = 50  # Nb of clusters for work areas
-    meters_from_area: int = 30  # Radius from a cluster center
-    seconds_for_vector: int = (
-        10  # "Length" of vector used to determine if vehicle is reversing
-    )
+# Helper function to check if timestamp is close to timestamps within a list
+def within_activity_seconds(target_timestamp, timestamp_list, time_threshold):
+    for ts in timestamp_list:
+        time_difference = abs((ts - target_timestamp).total_seconds())
 
-    speed_limit: int = 30  # Cannot be loading or dumping if speed higher than this. Don't like such a high number.
-    meters_since_last_activity: int = 300  # Meters driven since last load/dump
+        if time_difference <= time_threshold:  # 3 minutes in seconds
+            return True
 
-    minutes_load: int = (
-        3  # Look at distance driven last x minutes before a possible load
-    )
-    max_sum_last_x_minutes_load: int = (
-        1000  # Max meters driven during the last x minutes
-    )
-    minutes_dump: int = (
-        3  # Look at distance driven last x minutes before a possible load
-    )
-    max_sum_last_x_minutes_dump: int = (
-        1000  # Max meters driven during the last x minutes
-    )
-
-    inner_prod_threshold: float = 0.80  # A threshold to pick up possible reversal
+    return False
 
 
 class points_times(BaseModel):
     points: list[tuple[float, float]] = []
     times: list[datetime] = []
+
+
+class criteria(BaseModel):
+    ###############################################################
+    ###########Criterias for prediction of load and dump###########
+    ###############################################################
+
+    optimal_K: int = 50  # Nb of clusters for work areas
+
+    meters_from_area: int = 30  # Radius from a cluster center
+
+    seconds_for_vector: int = (
+        10  # "Length" of vector used to determine if vehicle is reversing
+    )
+
+    speed_limit: int = 30  # Cannot be loading or dumping if speed higher than this. Don't like such a high number
+
+    meters_since_last_activity: int = 300  # Meters driven since last load/dump
+
+    minutes_load: int = (
+        3  # Look at distance driven last x minutes before a possible load
+    )
+
+    max_sum_last_x_minutes_load: int = (
+        1000  # Max meters driven during the last x minutes
+    )
+
+    minutes_dump: int = (
+        3  # Look at distance driven last x minutes before a possible load
+    )
+
+    max_sum_last_x_minutes_dump: int = (
+        1000  # Max meters driven during the last x minutes
+    )
+
+    inner_prod_threshold: float = (
+        0.80  # A threshold to pick up possible reversal movement from dot product
+    )
+
+    ###############################################################
+    ################Criterias for idle computation#################
+    ###############################################################
+
+    avg_speed_limit: int = (
+        5  # Average speed max for a given time, before we decide its idle time
+    )
+    time_for_avg_speed: int = 30  # Seconds for avg speed before we decide it is idle time. Can reduce sensitivity
+
+    min_idle_period: int = (
+        30  # Minimum number of seconds before it can become idle period
+    )
+
+    dump_expected_time: int = 60  # Seconds expected for dump time
+
+    load_expected_time: int = 300  # Seconds expected for load time
+
+    idle_speed_limit: int = (
+        20  # Maximum speed km/h to say vehicle stands still, in relation to idle time
+    )
 
 
 class predicted_load_dump(BaseModel):
@@ -59,10 +104,11 @@ class stats(BaseModel):  # Represents actual data
     inner_prods: list[
         float
     ] = []  # Inner product of consecutive normalized driving vectors
+    list_of_idle_times: list[points_times] = []  # List of all times idle during a day
 
 
 class automated_load_dump_for_machine:
-    def __init__(self, day: str, machine_nb: int | str) -> None:
+    def __init__(self, day: str, machine_nb: int) -> None:
         # Loading gps data for selected day and day before
         print("Loading data for day...")
         trip = dataloader.TripsLoader(day)
@@ -153,7 +199,7 @@ class automated_load_dump_for_machine:
 
         return load_cluster_centers, dump_cluster_centers
 
-    def predict(self):
+    def predict_loaddump(self):
         print("Starting prediction of loads and dumps...")
         # We know first loading because that is when data begins
         self.predicted.load.points.append(
@@ -371,7 +417,7 @@ class automated_load_dump_for_machine:
                                 meters_since_last_activity = 0
         print("Finished prediction!")
 
-    def time_plot(self):
+    def prediction_time_plot(self):
         # Plots, not wanted when a lot of data
         # Create subplots with 2 rows and 1 column
         fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1)
@@ -516,7 +562,7 @@ class automated_load_dump_for_machine:
 
         fig.show()
 
-    def gantt_plot(self):
+    def prediction_gantt_plot(self):
         all_trips_for_machine = self.machine.trips
         start_end_each_trip_dict_actual = [
             dict(
@@ -595,6 +641,223 @@ class automated_load_dump_for_machine:
         # Show the combined subplot
         fig.show()
 
+    def find_idle_time(self):
+        print("Computing idle times...")
+        # A list containing idle periods before passed to object
+        temp_idle_list = points_times()
+        list_of_all_times = [pos.timestamp for pos in self.stats.all_positions]
+        list_of_all_pos = [(pos.lat, pos.lon) for pos in self.stats.all_positions]
+
+        # We start processing. Are going to iterate over all positions, from first to last
+        for i in tqdm(range(1, len(self.stats.all_positions[1:]))):
+            current_pos = self.stats.all_positions[i]
+            prev_pos = self.stats.all_positions[i - 1]
+            current_time = current_pos.timestamp
+
+            # Seconds passed since last timestamp
+            seconds_gone = (
+                current_pos.timestamp.to_pydatetime()
+                - prev_pos.timestamp.to_pydatetime()
+            ).total_seconds()
+
+            if seconds_gone > 0:
+                # Meters driven since last timestamp
+                meters_driven = geopy.distance.geodesic(
+                    (current_pos.lat, current_pos.lon), (prev_pos.lat, prev_pos.lon)
+                ).m
+
+                # Meters driven since last timestamp
+                speed_kmh = (meters_driven / seconds_gone) * 3.6
+
+                # Compute average speed over last x seconds, see criterias
+                vector_start = current_pos.timestamp - timedelta(
+                    seconds=self.criterias.time_for_avg_speed
+                )
+                index_start_vector = len(list_of_all_times) - 1
+                for j, ts in reversed(list(enumerate(list_of_all_times))):
+                    if ts <= vector_start:
+                        index_start_vector = j
+                        break
+                seconds_between = (
+                    current_pos.timestamp.to_pydatetime()
+                    - list_of_all_times[j].to_pydatetime()
+                ).total_seconds()
+                meters_between = geopy.distance.geodesic(
+                    (current_pos.lat, current_pos.lon),
+                    list_of_all_pos[index_start_vector],
+                ).m
+                current_avg_speed = (
+                    meters_between / (seconds_between + 0.000001)
+                ) * 3.6
+
+                # Add the speed to a list for entire day -> This has already been done if ran prediction.
+                self.stats.day_speeds.append(speed_kmh)
+
+                # Add the distance (km) between the two timestamps
+                self.stats.day_dists.append(meters_driven / 1000)
+
+                # Add the timestamp for the two above values
+                self.stats.day_times.append(current_pos.timestamp)
+
+                # First check if we are in a dumping or loading "zone"
+                if within_activity_seconds(
+                    current_time,
+                    self.stats.load.times,
+                    self.criterias.load_expected_time,
+                ) or within_activity_seconds(
+                    current_time,
+                    self.stats.dump.times,
+                    self.criterias.dump_expected_time,
+                ):
+                    if len(temp_idle_list.points) > 0:
+                        self.stats.list_of_idle_times.append(temp_idle_list)
+                        temp_idle_list = points_times()  # Re-initialize
+                # Then check if there are other paramters saying we are not idle
+                elif (
+                    speed_kmh > self.criterias.idle_speed_limit
+                ):  # Could be merged with above if stays like this.
+                    if len(temp_idle_list.points) > 0:
+                        self.stats.list_of_idle_times.append(temp_idle_list)
+                        temp_idle_list = points_times()  # Re-initialize
+                elif (
+                    speed_kmh < self.criterias.idle_speed_limit
+                    and self.criterias.avg_speed_limit < current_avg_speed
+                ):
+                    temp_idle_list.points.append((current_pos.lat, current_pos.lon))
+                    temp_idle_list.times.append(current_time)
+                    if (
+                        i == len(self.stats.all_positions[1:]) - 1
+                    ):  # i.e. last iteration
+                        self.stats.list_of_idle_times.append(temp_idle_list)
+        print("Finished!")
+
+    def idle_report(self):
+        # Si noe om sum av tid idle
+        # Lage plot av hvor idle
+        # Hvor mange ganger idle?
+        total_time_idle_seconds = sum(
+            [
+                (l.times[-1] - l.times[0]).total_seconds()
+                for l in self.stats.list_of_idle_times
+            ]
+        )
+        print("**************")
+        print("Machine was idle ", len(self.stats.list_of_idle_times), " times.")
+        print(
+            "Idle for a total of (HH-MM-SS): ",
+            str(timedelta(seconds=total_time_idle_seconds)),
+        )
+        print("Heatmap of places it was idle.")
+
+        # Create a map centered at the mean of all coordinates, with heatmap
+        all_idle_points = [l.points for l in self.stats.list_of_idle_times]
+        all_idle_points = [item for sublist in all_idle_points for item in sublist]
+        points_center = np.mean(all_idle_points, axis=0)
+        m = L.Map(center=(points_center[0], points_center[1]), zoom=10)
+        # Add markers for each cluster center to the map
+        heatmap = L.Heatmap(locations=all_idle_points, radius=10)
+        m.add_layer(heatmap)
+        # Display the map
+        display(m)
+
+    def idle_time_plot(self):
+        # Plots, not wanted when a lot of data
+        # Create subplots with 2 rows and 1 column
+        fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.1)
+
+        # Add the first line plot to the first subplot
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.day_times,
+                y=self.stats.day_speeds,
+                mode="lines",
+                name="Speed",
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.load.times,
+                y=[0 for a in self.stats.load.times],
+                mode="markers",
+                marker=dict(symbol="cross", size=10, color="red"),
+                name="Load actual",
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.dump.times,
+                y=[0 for a in self.stats.dump.times],
+                mode="markers",
+                marker=dict(symbol="cross", size=10, color="green"),
+                name="Dump actual",
+            ),
+            row=1,
+            col=1,
+        )
+
+        # Add the second line plot to the second subplot
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.day_times,
+                y=np.cumsum(self.stats.day_dists),
+                mode="lines",
+                name="Cumulative distance",
+            ),
+            row=2,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.load.times,
+                y=[0 for a in self.stats.load.times],
+                mode="markers",
+                marker=dict(symbol="cross", size=10, color="red"),
+                name="Load actual",
+            ),
+            row=2,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=self.stats.dump.times,
+                y=[0 for a in self.stats.dump.times],
+                mode="markers",
+                marker=dict(symbol="cross", size=10, color="green"),
+                name="Dump actual",
+            ),
+            row=2,
+            col=1,
+        )
+
+        # Add the third line plot
+        for idle_time in self.stats.list_of_idle_times:
+            fig.add_trace(
+                go.Scatter(
+                    x=idle_time.times,
+                    y=[0 for a in idle_time.times],
+                    mode="lines",
+                    name="Inner product of vectors",
+                ),
+                row=3,
+                col=1,
+            )
+
+        # Update layout settings for both subplots
+        fig.update_layout(
+            title=str(
+                "Subplots of Speeds and cumulative distance, machine_id: "
+                + str(self.machine.machine_id)
+            ),
+            xaxis_title="Timestamp",
+            showlegend=True,
+        )
+
+        fig.show()
+
 
 if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY
@@ -602,5 +865,8 @@ if __name__ == "__main__":
     automated_for_given_machine.predict()
     automated_for_given_machine.time_plot()
     automated_for_given_machine.gantt_plot()
+    automated_for_given_machine.find_idle_time()
+    automated_for_given_machine.idle_time_plot()
+    automated_for_given_machine.idle_report()
 
 # %%
