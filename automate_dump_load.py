@@ -21,7 +21,7 @@ class criteria(BaseModel):
     )
 
     speed_limit: int = 30  # Cannot be loading or dumping if speed higher than this. Don't like such a high number.
-    meters_since_last_activity: int = 30  # Meters driven since last load/dump
+    meters_since_last_activity: int = 300  # Meters driven since last load/dump
 
     minutes_load: int = (
         3  # Look at distance driven last x minutes before a possible load
