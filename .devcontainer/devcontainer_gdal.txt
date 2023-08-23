@@ -1,0 +1,71 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "RoadAI",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "pip3 install --user -r requirements.txt",
+	"runArgs": [
+		"--env-file",
+		".devcontainer/.env"
+	],
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"window.title": "${rootName}${separator}${dirty}${activeEditorShort}${separator}${profileName}${separator}${appName}",
+				"window.commandCenter": true,
+				"window.menuBarVisibility": "toggle",
+				"[json]": {
+					"editor.defaultFormatter": "vscode.json-language-features",
+					"editor.formatOnSave": true
+				},
+				"[python]": {
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.organizeImports": false,
+						"source.": true
+					}
+				},
+				"python.poetryPath": "/usr/local/bin/poetry",
+				"python.pythonPath": "${workspaceFolder}/.venv/bin/python",
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+				"python.analysis.typeCheckingMode": "basic",
+				"python.linting.enabled": true,
+				"python.testing.pytestEnabled": true,
+				"python.terminal.activateEnvironment": false,
+				"jupyter.notebookFileRoot": "${workspaceFolder}/",
+				"files.exclude": {
+					"**/__pycache__": true,
+					"**/*.egg-info": true,
+					"**/.pytest_cache": true,
+					"**/.benchmarks": true,
+					"**/.ruff_cache": true,
+					"**/.venv": true,
+					"pyrepo": true
+				}
+			},
+			"extensions": [
+				"ms-python.vscode-pylance",
+				"ms-python.python",
+				"ms-azuretools.vscode-docker",
+				"ms-toolsai.jupyter",
+				"charliermarsh.ruff",
+				"eamodio.gitlens",
+				"yzhang.markdown-all-in-one"
+			],
+			"recommendations": [
+				"GitHub.copilot"
+			]
+		}
+	}
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
