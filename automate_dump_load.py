@@ -98,6 +98,7 @@ class stats(BaseModel):  # Represents actual data
     all_positions: list[Position] = []  # Positions recorded during a day
     load: points_times = points_times()  # Load points and times
     dump: points_times = points_times()  # Dump points and times
+    day_stats_set: bool = False  # If the three day statistics have been set
     day_speeds: list[float] = []  # Speeds
     day_dists: list[float] = []  # Distances between each recording
     day_times: list[datetime] = []  # Timestamp for two above lists
@@ -263,10 +264,7 @@ class automated_load_dump_for_machine:
             prev_pos = self.stats.all_positions[i - 1]
 
             # Seconds passed since last timestamp
-            seconds_gone = (
-                current_pos.timestamp.to_pydatetime()
-                - prev_pos.timestamp.to_pydatetime()
-            ).total_seconds()
+            seconds_gone = (current_pos.timestamp - prev_pos.timestamp).total_seconds()
 
             if seconds_gone > 0:
                 # Meters driven since last timestamp
@@ -277,15 +275,15 @@ class automated_load_dump_for_machine:
 
                 # Meters driven since last timestamp
                 speed_kmh = (meters_driven / seconds_gone) * 3.6
+                if not self.stats.day_stats_set:
+                    # Add the speed to a list for entire day
+                    self.stats.day_speeds.append(speed_kmh)
 
-                # Add the speed to a list for entire day
-                self.stats.day_speeds.append(speed_kmh)
+                    # Add the distance (km) between the two timestamps
+                    self.stats.day_dists.append(meters_driven / 1000)
 
-                # Add the distance (km) between the two timestamps
-                self.stats.day_dists.append(meters_driven / 1000)
-
-                # Add the timestamp for the two above values
-                self.stats.day_times.append(current_pos.timestamp)
+                    # Add the timestamp for the two above values
+                    self.stats.day_times.append(current_pos.timestamp)
 
                 # Compute vectors. This is a lot of code, maybe create some function?
                 # Create vector for computing reverse of vehicle
@@ -415,6 +413,7 @@ class automated_load_dump_for_machine:
                                 # Have now predicted a dump, next load
                                 predicting_load = True
                                 meters_since_last_activity = 0
+        self.stats.day_stats_set = True
         print("Finished prediction!")
 
     def prediction_time_plot(self):
@@ -655,10 +654,7 @@ class automated_load_dump_for_machine:
             current_time = current_pos.timestamp
 
             # Seconds passed since last timestamp
-            seconds_gone = (
-                current_pos.timestamp.to_pydatetime()
-                - prev_pos.timestamp.to_pydatetime()
-            ).total_seconds()
+            seconds_gone = (current_pos.timestamp - prev_pos.timestamp).total_seconds()
 
             if seconds_gone > 0:
                 # Meters driven since last timestamp
@@ -679,8 +675,7 @@ class automated_load_dump_for_machine:
                         index_start_vector = j
                         break
                 seconds_between = (
-                    current_pos.timestamp.to_pydatetime()
-                    - list_of_all_times[j].to_pydatetime()
+                    current_pos.timestamp - list_of_all_times[j]
                 ).total_seconds()
                 meters_between = geopy.distance.geodesic(
                     (current_pos.lat, current_pos.lon),
@@ -690,14 +685,15 @@ class automated_load_dump_for_machine:
                     meters_between / (seconds_between + 0.000001)
                 ) * 3.6
 
-                # Add the speed to a list for entire day -> This has already been done if ran prediction.
-                self.stats.day_speeds.append(speed_kmh)
+                if not self.stats.day_stats_set:
+                    # Add the speed to a list for entire day
+                    self.stats.day_speeds.append(speed_kmh)
 
-                # Add the distance (km) between the two timestamps
-                self.stats.day_dists.append(meters_driven / 1000)
+                    # Add the distance (km) between the two timestamps
+                    self.stats.day_dists.append(meters_driven / 1000)
 
-                # Add the timestamp for the two above values
-                self.stats.day_times.append(current_pos.timestamp)
+                    # Add the timestamp for the two above values
+                    self.stats.day_times.append(current_pos.timestamp)
 
                 # First check if we are in a dumping or loading "zone"
                 if within_activity_seconds(
@@ -729,6 +725,7 @@ class automated_load_dump_for_machine:
                         i == len(self.stats.all_positions[1:]) - 1
                     ):  # i.e. last iteration
                         self.stats.list_of_idle_times.append(temp_idle_list)
+        self.stats.day_stats_set = True
         print("Finished!")
 
     def idle_report(self):
@@ -837,10 +834,7 @@ class automated_load_dump_for_machine:
         for idle_time in self.stats.list_of_idle_times:
             fig.add_trace(
                 go.Scatter(
-                    x=idle_time.times,
-                    y=[0 for a in idle_time.times],
-                    mode="lines",
-                    name="Inner product of vectors",
+                    x=idle_time.times, y=[0 for a in idle_time.times], mode="lines"
                 ),
                 row=3,
                 col=1,
