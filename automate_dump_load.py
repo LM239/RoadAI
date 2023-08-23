@@ -500,20 +500,23 @@ class automated_load_dump_for_machine:
             col=1,
         )
 
+        fig.update_yaxes(title_text="Km/h", row=1, col=1)
+        fig.update_yaxes(title_text="Km", row=2, col=1)
+        fig.update_yaxes(title_text="Dot product", row=3, col=1)
+        fig.update_xaxes(title_text="Timestamp", row=3, col=1)
+
         # Update layout settings for both subplots
         fig.update_layout(
             title=str(
-                "Subplots of Speeds and cumulative distance, machine_id: "
+                "Subplots of speeds, cumulative distance and dot product, machine_id: "
                 + str(self.machine.machine_id)
             ),
-            xaxis_title="Timestamp",
             showlegend=True,
         )
 
         fig.show()
 
     def gantt_plot(self):
-        # Actual trips
         all_trips_for_machine = self.machine.trips
         start_end_each_trip_dict_actual = [
             dict(
@@ -536,14 +539,15 @@ class automated_load_dump_for_machine:
             for i in range(len(self.predicted.load.times) - 1)
         ]
         df_pyplot_predicted = pd.DataFrame(start_end_each_trip_dict_predicted)
-
-        fig = px.timeline(
+        # Create the individual plots
+        fig_actual = px.timeline(
             df_pyplot_actual,
             x_start="Start",
             x_end="End",
             custom_data=["Load", "Dist", "Id"],
+            title="Actual trips",
         )
-        fig.update_traces(
+        fig_actual.update_traces(
             hovertemplate="<br>".join(
                 [
                     "Start: %{base}",
@@ -554,16 +558,41 @@ class automated_load_dump_for_machine:
                 ]
             )
         )
-        fig.update_yaxes(
-            autorange="reversed"
-        )  # otherwise tasks are listed from the bottom up
-        fig.show()
+        fig_actual.update_yaxes(autorange="reversed", title_text="Trip number")
+        fig_actual.update_xaxes(title_text="Timestamp")
 
-        fig = px.timeline(df_pyplot_predicted, x_start="Start", x_end="End")
-        fig.update_traces(hovertemplate="<br>".join(["Start: %{base}", "End: %{x}"]))
-        fig.update_yaxes(
-            autorange="reversed"
-        )  # otherwise tasks are listed from the bottom up
+        fig_predicted = px.timeline(
+            df_pyplot_predicted, x_start="Start", x_end="End", title="Predicted trips"
+        )
+        fig_predicted.update_traces(
+            hovertemplate="<br>".join(["Start: %{base}", "End: %{x}"])
+        )
+        fig_predicted.update_yaxes(autorange="reversed", title_text="Trip number")
+        fig_predicted.update_xaxes(title_text="Timestamp")
+
+        # Create a subplot with two rows and one column
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.1,
+            subplot_titles=("Actual trips", "Predicted trips"),
+        )
+
+        # Add the individual plots to the subplot
+        fig.add_trace(fig_actual.data[0], row=1, col=1)
+        fig.add_trace(fig_predicted.data[0], row=2, col=1)
+
+        # Update subplot layout
+        fig.update_layout(height=600, width=800, title_text="Trips timeline")
+        fig.update_xaxes(type="date")
+        fig.update_yaxes(row=1, col=1, autorange="reversed")
+        fig.update_yaxes(row=2, col=1, autorange="reversed")
+        fig.update_yaxes(title_text="Trip nb", row=1, col=1)
+        fig.update_yaxes(title_text="Trip nb", row=2, col=1)
+        fig.update_xaxes(title_text="Timestamp", row=2, col=1)
+
+        # Show the combined subplot
         fig.show()
 
 
