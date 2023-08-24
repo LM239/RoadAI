@@ -6,6 +6,18 @@ import lightgbm as lgbm
 FOLDER_NAME = "data/ml_model_data"
 
 
+class LightGBMParams:
+    params = {
+        "boosting_type": "gbdt",
+        "objective": "regression",
+        "metric": "l2",
+        "num_leaves": 31,
+        "learning_rate": 0.5,
+        "feature_fraction": 1,
+        "num_boost_round": 1000,
+    }
+
+
 def column_name_df_preds(model_name: str) -> str:
     return "pred_" + model_name.split("_")[-1].split(".bin")[0]
 

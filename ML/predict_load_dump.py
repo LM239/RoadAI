@@ -10,6 +10,7 @@ from func_helpers_ml import (
     column_name_df_preds,
     save_pred_df,
     plot_metrics,
+    LightGBMParams,
 )
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -24,15 +25,6 @@ def _train_lightgbm() -> None:
     X, _, y, _ = split_data_into_training_and_testing()  # type: ignore
     # split again to get data to validate against during iterations
     X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=39)
-    params = {
-        "boosting_type": "gbdt",
-        "objective": "regression",
-        "metric": "l2",
-        "num_leaves": 31,
-        "learning_rate": 0.5,
-        "feature_fraction": 1,
-        "num_boost_round": 1000,
-    }
     # predict both load and dump and save the models
     fig, axs = plt.subplots(1, 2, figsize=(8, 4))
 
@@ -41,7 +33,7 @@ def _train_lightgbm() -> None:
         val = lgbm.Dataset(X_val, y_val[target_column])
         booster_record_eval = {}
         model = lgbm.train(
-            params,
+            LightGBMParams.params,
             train,
             valid_sets=[train, val],
             valid_names=["Train", "Val"],
@@ -52,7 +44,7 @@ def _train_lightgbm() -> None:
         )
         plot_metrics(
             booster=booster_record_eval,
-            metric=params["metric"],
+            metric=LightGBMParams.params["metric"],
             ax=axs[idx],
             load_or_dump=target_column,
         )
