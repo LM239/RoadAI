@@ -1,11 +1,11 @@
 import lightgbm as lgbm
 from lightgbm import early_stopping, record_evaluation
 from sklearn.model_selection import train_test_split
-from data_preprocessing_ml import (
+from data_preprocessing import (
     split_data_into_training_and_testing,
     data_set_to_consider,
 )
-from func_helpers_ml import (
+from model_helpers import (
     FOLDER_NAME,
     column_name_df_preds,
     save_pred_df,
