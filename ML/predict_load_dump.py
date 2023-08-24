@@ -8,8 +8,11 @@ from data_preprocessing import (
 from model_helpers import (
     FOLDER_NAME,
     column_name_df_preds,
+    plot_data,
+    read_and_normalize_data,
     save_pred_df,
     plot_metrics,
+    save_model,
     LightGBMParams,
 )
 import matplotlib.pyplot as plt
@@ -48,7 +51,8 @@ def _train_lightgbm() -> None:
             ax=axs[idx],
             load_or_dump=target_column,
         )
-        model.save_model(f"data/ml_model_data/models/lgm_model_{target_column}.bin")
+        save_model(model, target_column)
+
     fig.tight_layout()
     fig.savefig(f"{FOLDER_NAME}/pngs/learning_curve.png")
 
@@ -77,35 +81,27 @@ def _load_and_predict() -> None:
 
 
 def _plot_pred_vs_empirical() -> None:
-    pred_df = pd.read_csv(f"{FOLDER_NAME}/preds/preds_load_dump_testing.csv", sep=",")
-    # normalize
-    for col in ["pred_Dump", "pred_Load"]:
-        pred_df[col] = pred_df[col] / pred_df[col].max()
-
+    pred_df = read_and_normalize_data(
+        f"{FOLDER_NAME}/preds/preds_load_dump_testing.csv"
+    )
     fig, axs = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=False)
     n_samples = range(len(pred_df))
 
     # plot Load and Dump in seperate subfigures
     for idx, label in enumerate(["Load", "Dump"]):
-        # plot pred
-        axs[idx].scatter(
+        plot_data(
+            axs[idx],
             n_samples,
             pred_df[f"pred_{label}"],
-            label=f"pred {label}",
-            marker="s",
-            color="tab:red",
-            s=7,
+            f"pred {label}",
+            "s",
+            "tab:red",
+            7,
         )
-        # plot empirical
-        axs[idx].scatter(
-            n_samples,
-            pred_df[label],
-            label=label,
-            alpha=0.5,
-            marker="o",
-            color="tab:blue",
-            s=7,
+        plot_data(
+            axs[idx], n_samples, pred_df[label], label, "o", "tab:blue", 7, alpha=0.5
         )
+
         axs[idx].legend()
         axs[idx].set_title(
             f"{label}, training_file: {data_set_to_consider().split('.csv')[0]}"
