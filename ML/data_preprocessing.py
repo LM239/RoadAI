@@ -1,15 +1,9 @@
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
-DATA_SETS = ["2_days_1_vehicle.csv", "1_day_all_trucks.csv"]
-
-
-def data_set_to_consider() -> str:
-    return DATA_SETS[0]
-
 
 def load_training_csv_files(
-    name_of_data_set: str = data_set_to_consider(),
+    name_of_data_set: str,
 ) -> pd.DataFrame:
     """
     Loads available training data
@@ -20,14 +14,15 @@ def load_training_csv_files(
 
 
 def split_data_into_training_and_testing(
-    all_data: pd.DataFrame = load_training_csv_files(),
-) -> tuple[pd.DataFrame]:
+    name_of_data_set: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Splits data into training and testing(unseen data)
     """
+    data_set = load_training_csv_files(name_of_data_set)
     X, y = (
-        all_data.drop(["Load", "Dump", "DateTime", "Time_from_start"], axis=1),
-        all_data[["Load", "Dump"]],
+        data_set.drop(["Load", "Dump", "DateTime", "Time_from_start"], axis=1),
+        data_set[["Load", "Dump"]],
     )
     # delete preds if they exist
     # _delete_pred_columns(X)
@@ -35,4 +30,4 @@ def split_data_into_training_and_testing(
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=40
     )
-    return (X_train, X_test, y_train, y_test)  # type: ignore
+    return (X_train, X_test, y_train, y_test)

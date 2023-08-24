@@ -1,10 +1,7 @@
 import lightgbm as lgbm
 from lightgbm import early_stopping, record_evaluation
 from sklearn.model_selection import train_test_split
-from data_preprocessing import (
-    split_data_into_training_and_testing,
-    data_set_to_consider,
-)
+from data_preprocessing import split_data_into_training_and_testing
 from model_helpers import (
     FOLDER_NAME,
     column_name_df_preds,
@@ -18,6 +15,18 @@ from model_helpers import (
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import argparse
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Choose dataset.")
+    parser.add_argument(
+        "--data_set",
+        type=str,
+        default="2_days_1_vehicle.csv",
+        help="Data set to consider (data/ml_model_data/training_data)",
+    )
+    return parser.parse_args()
 
 
 def _train_lightgbm() -> None:
@@ -25,7 +34,8 @@ def _train_lightgbm() -> None:
     Train and fit model to trainng data (80% of available data), train on both
     load and dump as lightgbm does not support multi-output regression
     """
-    X, _, y, _ = split_data_into_training_and_testing()  # type: ignore
+    dataset = get_args().data_set
+    X, _, y, _ = split_data_into_training_and_testing(dataset)  # type: ignore
     # split again to get data to validate against during iterations
     X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=39)
     # predict both load and dump and save the models
@@ -61,7 +71,8 @@ def _load_and_predict() -> None:
     """
     Load the two models and predict load and dump. Store the preds with the empirical data
     """
-    X_train, X_test, y_train, y_test = split_data_into_training_and_testing()  # type: ignore
+    dataset = get_args().data_set
+    X_train, X_test, y_train, y_test = split_data_into_training_and_testing(dataset)
     pred_df_testing = pd.concat([X_test, y_test], axis=1)
     pred_df_training = pd.concat([X_train, y_train], axis=1)
 
@@ -86,7 +97,7 @@ def _plot_pred_vs_empirical() -> None:
     )
     fig, axs = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=False)
     n_samples = range(len(pred_df))
-
+    dataset = get_args().data_set
     # plot Load and Dump in seperate subfigures
     for idx, label in enumerate(["Load", "Dump"]):
         plot_data(
@@ -103,18 +114,19 @@ def _plot_pred_vs_empirical() -> None:
         )
 
         axs[idx].legend()
-        axs[idx].set_title(
-            f"{label}, training_file: {data_set_to_consider().split('.csv')[0]}"
-        )
+        axs[idx].set_title(f"{label}, training_file: {dataset.split('.csv')[0]}")
         axs[idx].set_ylim(0.8, 1.05)
 
     fig.tight_layout()
     fig.savefig(
-        f"{FOLDER_NAME}/pngs/empirical_vs_normalized_preds{data_set_to_consider().split('.csv')[0]}.png"
+        f"{FOLDER_NAME}/pngs/empirical_vs_normalized_preds{dataset.split('.csv')[0]}.png"
     )
 
 
 if __name__ == "__main__":
+    args = get_args()
+    data_set = args.data_set
+    print(f"Using data set: {data_set}")
     _train_lightgbm()
     _load_and_predict()
     _plot_pred_vs_empirical()
