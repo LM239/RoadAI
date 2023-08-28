@@ -21,7 +21,7 @@ def split_data_into_training_and_testing(
     """
     data_set = load_training_csv_files(name_of_data_set)
     X, y = (
-        data_set.drop(["Load", "Dump", "DateTime", "Time_from_start"], axis=1),
+        data_set.drop(["MachineID", "Load", "Dump", "DateTime"], axis=1),
         data_set[["Load", "Dump"]],
     )
     # delete preds if they exist
@@ -31,3 +31,14 @@ def split_data_into_training_and_testing(
         X, y, test_size=0.2, random_state=40
     )
     return (X_train, X_test, y_train, y_test)
+
+
+def if_duplicates():
+    df = load_training_csv_files("1_day_all_trucks.csv")
+    duplicates = df.duplicated()
+    duplicated_rows = df[duplicates]
+    return duplicated_rows
+
+
+if __name__ == "__main__":
+    print(if_duplicates())
