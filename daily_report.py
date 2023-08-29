@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from schemas import Position, Trip
 import geopy.distance
+import plotly.graph_objects as go
+import ipyleaflet as L
+import numpy as np
 
 
 class Points_times(BaseModel):
@@ -115,7 +118,7 @@ class DailyReport:
         # Loading gps data for selected day
         self.trips = dataloader.TripsLoader(day)
 
-        #Initializing Idle_machine
+        #Initializing Idle_machine - object that keeps track of when and where machines are idle
         self.idle_machines = Idle_machines()
     
     #Function that computes idle times of choosen machine types for selected day
@@ -142,6 +145,178 @@ class DailyReport:
                         total_idle_seconds = temp_total_time_idle_seconds)
                     )
         print("Finished!")
+    
+    #Function that prepares for plotting of aggregated number of idle machines throughout day
+    def aggregated_idle_timeline(self):
+        
+        
+        first_timestamp = self.idle_machines.list_of_idle_machines[0].trips[0].positions[0].timestamp #First machines first timestamp
+        last_timestamp = self.idle_machines.list_of_idle_machines[0].trips[-1].positions[-1].timestamp #First machines last timestamp
+        for machine in self.idle_machines.list_of_idle_machines:
+            if machine.trips[0].positions[0].timestamp < first_timestamp:
+                first_timestamp = machine.trips[0].positions[0].timestamp
+            if machine.trips[-1].positions[-1].timestamp > last_timestamp:
+                last_timestamp  = machine.trips[-1].positions[-1].timestamp
+        
+        #Create a list of timestamps throughout day
+        current_datetime = first_timestamp
+        self.datetime_intervals = []
+
+        while current_datetime < last_timestamp and current_datetime.hour < 24: #Do not want to look at idle machines overnight
+            self.datetime_intervals.append(current_datetime)
+            current_datetime += timedelta(minutes=2) #This could be a parameter
+        
+        self.nb_of_idle_machines = [0 for i in self.datetime_intervals]
+        self.nb_of_machines_in_action = [0 for i in self.datetime_intervals]
+        self.nb_of_idle_waiting_for_dump = [0 for i in self.datetime_intervals]
+        self.nb_of_idle_waiting_for_load = [0 for i in self.datetime_intervals]
+        #Now have a list of times, and list of machines
+        for i in range(len(self.datetime_intervals)):
+            time = self.datetime_intervals[i]
+            for m in self.idle_machines.list_of_idle_machines:
+                if m.trips[0].positions[0].timestamp < time < m.trips[-1].positions[-1].timestamp:
+                   self.nb_of_machines_in_action[i] += 1 
+                for it in m.list_of_idle_times:
+                    if it.times[0] < time < it.times[-1]:
+                        self.nb_of_idle_machines[i] += 1
+                        
+                        #Check if we are waiting for load or dump
+                        smallest_time_above = m.trips[-1].positions[-1].timestamp #Highest possible value
+                        waiting_for_load = True
+                        
+                        for lt in m.load.times:
+                            if  it.times[0] < lt < smallest_time_above:
+                                smallest_time_above = lt
+                        for dt in m.dump.times:
+                            if it.times[0] < dt < smallest_time_above:
+                                smalles_time_above = dt
+                                waiting_for_load = False
+                        
+                        if waiting_for_load == True:
+                            self.nb_of_idle_waiting_for_load[i] += 1
+                        else:
+                            self.nb_of_idle_waiting_for_dump[i] += 1
+                        break
+    
+    #Function that plots number of idle machines throughout day
+    def plot_aggregated_idle_timeline(self):
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(
+            x=self.datetime_intervals,
+            y=self.nb_of_idle_machines,
+            mode='markers+lines',
+            name='Machines idle'
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=self.datetime_intervals,
+            y=self.nb_of_machines_in_action,
+            mode='markers+lines',
+            name='Machines in action'
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=self.datetime_intervals,
+            y=self.nb_of_idle_waiting_for_load,
+            mode='markers+lines',
+            name='Waiting for load'
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=self.datetime_intervals,
+            y=self.nb_of_idle_waiting_for_dump,
+            mode='markers+lines',
+            name='Waiting for dump'
+        ))
+
+
+        fig.update_layout(
+            title='Number of concurrently idle machines',
+            xaxis_title='Time',
+            yaxis_title='Machines idle',
+            xaxis=dict(type='date'),
+            yaxis=dict(type='linear'),
+        )
+
+        fig.show()
+        #fig.write_html("./data/output_html/idle_timeline.html")
+    
+    #Function that plot map of position of machines at peak times during day
+    def plot_peak_times(self, threshold: int):
+
+        #Froces you to run aggregated_idle_timeline first
+        if not len(self.datetime_intervals) > 0 :
+            self.aggregated_idle_timeline()
+
+        
+        last_val = 0 #Want to avoid plotting similar maps for same idle period
+        
+        for i in range(len(self.datetime_intervals)):
+            list_of_positions = []
+            list_of_load_waiting = []
+            if self.nb_of_idle_machines[i] >= threshold and self.nb_of_idle_machines[i] > last_val:
+                last_val = self.nb_of_idle_machines[i]
+                #We are at or above threshold. Want to plot position of idle machines
+                time = self.datetime_intervals[i]
+                print("At: ", time)
+                print("Idle machines: ", self.nb_of_idle_machines[i])
+                for m in self.idle_machines.list_of_idle_machines:
+                    for it in m.list_of_idle_times:
+                        if it.times[0] < time < it.times[-1]:
+                            list_of_positions.append(it.points[0])#Assuming its not moving a lot during this interval
+                            #Check if we are waiting for load or dump
+                            smallest_time_above = m.trips[-1].positions[-1].timestamp #Highest possible value
+                            waiting_for_load = True
+                            
+                            for lt in m.load.times:
+                                if  it.times[0] < lt < smallest_time_above:
+                                    smallest_time_above = lt
+                            for dt in m.dump.times:
+                                if it.times[0] < dt < smallest_time_above:
+                                    smalles_time_above = dt
+                                    waiting_for_load = False
+                            
+                            list_of_load_waiting.append(waiting_for_load == True)
+                            break
+        
+                # Create a map centered at the mean of all coordinates, with heatmap
+                points_center = np.mean(list_of_positions, axis=0)
+                m = L.Map(center=(points_center[0], points_center[1]), zoom=12)
+                for k in range(len(list_of_positions)):
+                    if list_of_load_waiting[k]:
+                        load_icon = L.Icon(icon_url='https://cdn-icons-png.flaticon.com/512/2716/2716797.png', icon_size=[32, 32], icon_anchor=[16,16])
+                        load_mark = L.Marker(location=list_of_positions[k], icon=load_icon, rotation_angle=0, rotation_origin='22px 94px')
+                        m.add_layer(load_mark)
+                    else:
+                        dump_icon = L.Icon(icon_url='https://cdn-icons-png.flaticon.com/512/1435/1435320.png', icon_size=[32, 32], icon_anchor=[16,16])
+                        dump_mark = L.Marker(location=list_of_positions[k], icon=dump_icon, rotation_angle=0, rotation_origin='22px 94px')
+                        m.add_layer(dump_mark)
+                # Display the map
+                display(m)
+                m.save('./data/output_html/my_map.html', title='PeakTime position and status')
+            else:
+                last_val = 0
+
+    #Function that plots heatmap of all idle times for day
+    def plot_idle_heatmap(self):
+
+        list_of_idle_positions = []
+        for idle_machine in self.idle_machines.list_of_idle_machines:
+            temp_pos = [t.points for t in idle_machine.list_of_idle_times]
+            list_of_idle_positions.append(temp_pos)
+
+        
+        list_of_idle_positions = [l for sublist in list_of_idle_positions for l in sublist]
+        list_of_idle_positions = [l for sublist in list_of_idle_positions for l in sublist]
+        points_center = np.mean(list_of_idle_positions, axis=0)
+        m = L.Map(center=(points_center[0], points_center[1]), zoom=10)
+        # Add markers for each cluster center to the map
+        heatmap = L.Heatmap(locations=list_of_idle_positions, radius=10)
+        m.add_layer(heatmap)
+        # Display the map
+        display(m)
 
 
 if __name__ == "__main__":
@@ -151,5 +326,9 @@ if __name__ == "__main__":
 
     choosen_machine_type = 'Truck'
     daily_report.compute_idle_times(choosen_machine_type)
+    daily_report.aggregated_idle_timeline()
+    daily_report.plot_aggregated_idle_timeline()
+    daily_report.plot_peak_times(12)
+    daily_report.plot_idle_heatmap()
 
 # %%
