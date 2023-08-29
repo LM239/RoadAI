@@ -1,0 +1,16 @@
+/* styles.css */
+body {
+    text-align: center; /* Center-align content within the body */
+    width: 75%;
+    margin: auto;
+  }
+  
+  p {
+    text-align: left;
+    width: 60%;
+  }
+  
+  iframe {
+    border: none; /* This removes the border around the iframe */
+  }
+  
