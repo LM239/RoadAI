@@ -12,11 +12,17 @@ import numpy as np
 
 
 class Points_times(BaseModel):
+    """
+    An appendable class for GPS points and times.
+    """
     #Appendable object to store positions with datetimes
     points: list[tuple[float, float]] = []  # Latlons
     times: list[datetime] = []              # Datetimes
 
 class Idle_machine(BaseModel):
+    """
+    Keep values for a single machine that is idle at least once during a day.
+    """
     machine_id: str | int
     trips: list[Trip]
     load: Points_times = Points_times()  # Load points and times
@@ -25,9 +31,15 @@ class Idle_machine(BaseModel):
     total_idle_seconds: float
 
 class Idle_machines(BaseModel):
+    """
+    A list of idle machines
+    """
     list_of_idle_machines: list[Idle_machine] = []
 
 class Stats(BaseModel):  
+    """
+    Relevant and useful information about a single machine for a selected day
+    """
     # Store relevant data on a machine
     all_positions: list[Position] = []  # Positions recorded during a day
     load: Points_times = Points_times()  # Load points and times
@@ -40,6 +52,9 @@ class Stats(BaseModel):
     
 
 class MachineSummary:
+    """
+    Allows for computation of idle time for a single machine and trips for that machine on a selected day.
+    """
 
     def __init__(self, trips, machine_nb: int) -> None:
         # Loading gps data for selected day and day before
@@ -112,7 +127,40 @@ class MachineSummary:
                         temp_idle_list = Points_times()  # Re-initialize
 
 class DailyReport:
+    """
+    Allows for insight into idle time, mass moved by machine and more.
 
+    Args
+    ------
+    day: String specyfing day we want to look at, in format MM-DD-YYYY
+
+    Attributes
+    ----------
+    trips : All trips for given day
+    idle_machines: List of Idle_machines
+    datetime_intervals: List with interval of times where we have active machines
+    nb_of_idle_machines: nb_of_idle_machines
+    nb_of_machines_in_action: List of number of machines in action
+    nb_of_idle_waiting_for_load: List of number of idle machines waiting to load
+    nb_of_idle_waiting_for_dump: List of number of idle machines waiting to dump
+
+    Methods
+    -------
+    generate_load_dump_clusters(day: str):
+        Generates cluster centers, usually want day before
+    predict_loaddump():
+        Predicts/computes load and dump points and times
+    prediction_time_plot():
+        Time plot of actual versus predicted load and dump
+    prediction_gantt_plot():
+        Gantt plot of actual and predicted trips
+    find_idle_time():
+        Computes times that are idle during day
+    idle_report():
+        Short summary of idle statistics, and heatmap of positions
+    idle_time_plot():
+        Time plot of where machine was idle, similar to prediction_time_plot
+    """
     def __init__(self, day: str) -> None:
 
         # Loading gps data for selected day
@@ -162,14 +210,15 @@ class DailyReport:
         current_datetime = first_timestamp
         self.datetime_intervals = []
 
-        while current_datetime < last_timestamp and current_datetime.hour < 24: #Do not want to look at idle machines overnight
+        while current_datetime < last_timestamp and current_datetime.hour < 23: #Do not want to look at idle machines overnight
             self.datetime_intervals.append(current_datetime)
             current_datetime += timedelta(minutes=2) #This could be a parameter
         
         self.nb_of_idle_machines = [0 for i in self.datetime_intervals]
         self.nb_of_machines_in_action = [0 for i in self.datetime_intervals]
-        self.nb_of_idle_waiting_for_dump = [0 for i in self.datetime_intervals]
         self.nb_of_idle_waiting_for_load = [0 for i in self.datetime_intervals]
+        self.nb_of_idle_waiting_for_dump = [0 for i in self.datetime_intervals]
+   
         #Now have a list of times, and list of machines
         for i in range(len(self.datetime_intervals)):
             time = self.datetime_intervals[i]
@@ -189,10 +238,10 @@ class DailyReport:
                                 smallest_time_above = lt
                         for dt in m.dump.times:
                             if it.times[0] < dt < smallest_time_above:
-                                smalles_time_above = dt
+                                smallest_time_above = dt
                                 waiting_for_load = False
                         
-                        if waiting_for_load == True:
+                        if waiting_for_load:
                             self.nb_of_idle_waiting_for_load[i] += 1
                         else:
                             self.nb_of_idle_waiting_for_dump[i] += 1
@@ -275,10 +324,10 @@ class DailyReport:
                                     smallest_time_above = lt
                             for dt in m.dump.times:
                                 if it.times[0] < dt < smallest_time_above:
-                                    smalles_time_above = dt
+                                    smallest_time_above = dt
                                     waiting_for_load = False
                             
-                            list_of_load_waiting.append(waiting_for_load == True)
+                            list_of_load_waiting.append(waiting_for_load)
                             break
         
                 # Create a map centered at the mean of all coordinates, with heatmap
@@ -321,10 +370,10 @@ class DailyReport:
 
 if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY
+    choosen_machine_type = 'Truck' # Truck | Dumper
     # Here we test our function
     daily_report = DailyReport(day)
 
-    choosen_machine_type = 'Truck'
     daily_report.compute_idle_times(choosen_machine_type)
     daily_report.aggregated_idle_timeline()
     daily_report.plot_aggregated_idle_timeline()
