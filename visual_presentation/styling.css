@@ -1,16 +1,63 @@
-/* styles.css */
+.nav-link {
+  display: inline-block;
+  width: 150px;
+  height: 55px;
+
+  color: White;
+
+  /* centering text */
+  text-align: center;    /* horizontally */
+  line-height: 55px;     /* vertically */
+  
+  text-decoration: none;
+}
+
+#logo {
+  width: 120px;
+
+  background-color: RoyalBlue;
+  
+  font-weight: bold;
+}
+
+#about {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+
+#topnav {
+  width: 100%;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  background-color: Black;
+
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+}
+
+
 body {
     text-align: center; /* Center-align content within the body */
     width: 75%;
     margin: auto;
+    font-family: "Roboto", sans-serif;
   }
   
-  p {
-    text-align: left;
-    width: 60%;
-  }
-  
-  iframe {
-    border: none; /* This removes the border around the iframe */
-  }
+p {
+  text-align: left;
+  width: 60%;
+}
+
+iframe {
+  border: none; /* This removes the border around the iframe */
+}
+
+h3 {
+  text-align: left;
+}
   
