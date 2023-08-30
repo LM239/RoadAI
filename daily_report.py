@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from schemas import Position, Trip
 import geopy.distance
 import plotly.graph_objects as go
+import plotly.express as px
 import ipyleaflet as L
 import numpy as np
 
@@ -138,6 +139,7 @@ class DailyReport:
     ----------
     trips : All trips for given day
     idle_machines: List of Idle_machines
+    productivity: Dictionary to track productivity of machines
     datetime_intervals: List with interval of times where we have active machines
     nb_of_idle_machines: nb_of_idle_machines
     nb_of_machines_in_action: List of number of machines in action
@@ -168,6 +170,8 @@ class DailyReport:
 
         #Initializing Idle_machine - object that keeps track of when and where machines are idle
         self.idle_machines = Idle_machines()
+
+        self.productivity = {}
     
     #Function that computes idle times of choosen machine types for selected day
     def compute_idle_times(self, machine_type: Literal['Truck', 'Dumper', 'Tippbil']):
@@ -360,12 +364,66 @@ class DailyReport:
         list_of_idle_positions = [l for sublist in list_of_idle_positions for l in sublist]
         list_of_idle_positions = [l for sublist in list_of_idle_positions for l in sublist]
         points_center = np.mean(list_of_idle_positions, axis=0)
-        m = L.Map(center=(points_center[0], points_center[1]), zoom=10)
+        m = L.Map(center=(points_center[0], points_center[1]), zoom=12)
         # Add markers for each cluster center to the map
         heatmap = L.Heatmap(locations=list_of_idle_positions, radius=10)
         m.add_layer(heatmap)
         # Display the map
         display(m)
+    
+    #Function that computes productivity as tons/hr (cited paper)
+    def compute_productivity(self):
+        
+        #We will look at every trip of every choosen machine type
+        #Except for last trip, as that is recorded in many different ways
+        for mass_type in ['Stone', 'Equipment', 'Soil', '4']:
+            
+            self.productivity[mass_type] = {}
+
+            for machine in self.trips._machines.keys():
+
+                temp_machine = self.trips._machines[machine]
+                
+                time_list = []
+                mass_list = []
+                for index, trip in enumerate(temp_machine.trips):
+                    
+                    if index < len(temp_machine.trips)-1: #Avoid last trip
+                        if trip.load == mass_type:
+                            time_list.append((trip.positions[-1].timestamp-trip.positions[0].timestamp).total_seconds())
+                            mass_list.append(trip.quantity) #We assume fully loaded
+
+                if sum(time_list) > 0:
+                    time_list = [seconds/(60*60) for seconds in time_list] #Want it in hours
+                    self.productivity[mass_type][temp_machine.machine_id] = sum(mass_list)/sum(time_list)
+                    
+    #Function that plots productivity
+    def plot_productivity(self):
+
+        for mass_type in ['Stone', 'Equipment', 'Soil', '4']:
+
+            temp_dict = self.productivity[mass_type]
+            if bool(temp_dict):
+                # Extract keys and values from the dictionary
+                keys = list(temp_dict.keys())
+                values = list(temp_dict.values())
+
+                # Create a bar plot using Plotly Express
+                fig = px.bar(x=keys, y=values)
+
+                # Customize the layout with title and axis titles
+                fig.update_layout(
+                    title=f"Bar Plot of productivity for mass type: {mass_type}",
+                    xaxis_title="Machine id",
+                    yaxis_title="tons/hr"
+                )
+                fig.update_xaxes(type='category')
+                fig.update_xaxes(categoryorder='total descending')
+
+                # Show the bar plot
+                fig.show()
+
+
 
 
 if __name__ == "__main__":
@@ -374,10 +432,12 @@ if __name__ == "__main__":
     # Here we test our function
     daily_report = DailyReport(day)
 
-    daily_report.compute_idle_times(choosen_machine_type)
-    daily_report.aggregated_idle_timeline()
-    daily_report.plot_aggregated_idle_timeline()
-    daily_report.plot_peak_times(12)
-    daily_report.plot_idle_heatmap()
+    #daily_report.compute_idle_times(choosen_machine_type)
+    #daily_report.aggregated_idle_timeline()
+    #daily_report.plot_aggregated_idle_timeline()
+    #daily_report.plot_peak_times(12)
+    #daily_report.plot_idle_heatmap()
+    daily_report.compute_productivity()
+    daily_report.plot_productivity()
 
 # %%
