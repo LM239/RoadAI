@@ -1,4 +1,3 @@
-#%%
 import dataloader
 from typing import Literal
 from tqdm import tqdm
@@ -438,5 +437,3 @@ if __name__ == "__main__":
     #daily_report.plot_idle_heatmap()
     daily_report.compute_productivity()
     daily_report.plot_productivity()
-
-# %%
