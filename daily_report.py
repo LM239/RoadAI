@@ -390,11 +390,10 @@ class DailyReport:
                     
                     if index < len(temp_machine.trips)-1: #Avoid last trip
                         if trip.load == mass_type:
-                            time_list.append((trip.positions[-1].timestamp-trip.positions[0].timestamp).total_seconds())
+                            time_list.append((trip.duration/60.0)) #Want it in hours
                             mass_list.append(trip.quantity) #We assume fully loaded
 
                 if sum(time_list) > 0:
-                    time_list = [seconds/(60*60) for seconds in time_list] #Want it in hours
                     self.productivity[mass_type][temp_machine.machine_id] = sum(mass_list)/sum(time_list)
                     
     #Function that plots productivity
