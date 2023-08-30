@@ -1,3 +1,4 @@
+import joblib
 import lightgbm as lgbm
 from lightgbm import early_stopping, record_evaluation
 from sklearn.model_selection import train_test_split
@@ -15,6 +16,7 @@ from model_helpers import (
     LightGBMParams,
     write_proba_score_test_data,
 )
+import time
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -50,47 +52,56 @@ def _train_lightgbm_and_plot_metric() -> None:
     # split again to get data to validate against during iterations
     X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=39)
     # predict both load and dump and save the models
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+    fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
+    ax_lc.set_yscale("log")
     actions_taken_for_this_model = arg_track_performance().action
     dataset = arg_track_performance().data_set
-    for idx, target_column in enumerate(y_train.columns):
-        # train = lgbm.Dataset(X_train, y_train[target_column])
-        # val = lgbm.Dataset(X_val, y_val[target_column])
-        booster_record_eval = {}
-        model = lgbm.LGBMClassifier(class_weight={False: 1, True: 20})
-        # print(type(y_train[target_column].values.ravel()))
-        model = model.fit(
-            X_train,
-            y_train[target_column].values.ravel(),
-            eval_set=[
-                (X_train, y_train[target_column].values.ravel()),
-                (X_val, y_val[target_column].values.ravel()),
-            ],
-            eval_metric=LightGBMParams.params["metric"],
-            eval_names=["Train", "Val"],
-            callbacks=[
-                early_stopping(stopping_rounds=2),
-                record_evaluation(booster_record_eval),
-            ],
-        )
 
-        plot_metrics(
-            booster=booster_record_eval,
-            metric=LightGBMParams.params["metric"],
-            ax=axs[idx],
-            load_or_dump=target_column,
-        )
+    # for idx, target_column in enumerate(y_train.columns):
+    # train = lgbm.Dataset(X_train, y_train[target_column])
+    # val = lgbm.Dataset(X_val, y_val[target_column])
+    booster_record_eval = {}
+    model = lgbm.LGBMClassifier(
+        class_weight={"Load": 2000, "Dump": 2000, "Driving": 1}, verbose=-1
+    )
+    t0 = time.perf_counter()
+    model = model.fit(
+        X_train,
+        y_train,
+        eval_set=[
+            (X_train, y_train),
+            (X_val, y_val),
+        ],
+        eval_metric=LightGBMParams.params["metric"],
+        eval_names=["Train", "Val"],
+        callbacks=[
+            early_stopping(stopping_rounds=2),
+            record_evaluation(booster_record_eval),
+        ],
+    )
 
-        # track the last val_loss to evaluate performance
-        write_performance_to_txt_file(
-            actions_taken_for_this_model,
-            dataset,
-            booster_record_eval["Val"]["binary_logloss"][-1],
-        )
-        save_model(model, target_column)
+    plot_metrics(
+        booster=booster_record_eval,
+        metric=LightGBMParams.params["metric"],
+        ax=ax_lc,
+        dataset=dataset,
+    )
+    fig_fi = lgbm.plot_importance(model).figure
+    fig_fi.tight_layout()
+    fig_fi.savefig("data/ml_model_data/pngs/feature_importance.png")
 
-    fig.tight_layout()
-    fig.savefig(f"{FOLDER_NAME}/pngs/learning_curve.png")
+    training_time = time.perf_counter() - t0
+    # track the last val_loss to evaluate performance
+    write_performance_to_txt_file(
+        training_time,
+        actions_taken_for_this_model,
+        dataset,
+        booster_record_eval["Val"]["multi_logloss"][-1],
+    )
+    save_model(model)
+
+    fig_lc.tight_layout()
+    fig_lc.savefig(f"{FOLDER_NAME}/pngs/learning_curve.png")
 
 
 def _load_and_predict() -> None:
@@ -102,66 +113,63 @@ def _load_and_predict() -> None:
     pred_df_testing = pd.concat([X_test, y_test], axis=1)
     pred_df_training = pd.concat([X_train, y_train], axis=1)
 
-    model_names = [
-        model for model in os.listdir(f"{FOLDER_NAME}/models") if model.endswith(".bin")
-    ]
-    for model_name in model_names:
-        loaded_model = lgbm.Booster(model_file=f"{FOLDER_NAME}/models/{model_name}")
+    loaded_model = joblib.load(f"{FOLDER_NAME}/models/lgm_model.bin")
 
-        pred_training = loaded_model.predict(X_train)
-        # label columns as pred_Load and pred_dump
-        pred_df_training[column_name_df_preds(model_name)] = pred_training
-        pred = loaded_model.predict(X_test)
-        pred_df_testing[column_name_df_preds(model_name)] = pred
+    # this is the order of the output matrix
+    driving_label, dump_label, load_label = loaded_model.classes_
+
+    pred_training = loaded_model.predict_proba(X_train)
+    pred_testing = loaded_model.predict_proba(X_test)
+
+    pred_df_training[f"proba_{driving_label}"] = pred_training[:, 0]
+    pred_df_training[f"proba_{dump_label}"] = pred_training[:, 1]
+    pred_df_training[f"proba_{load_label}"] = pred_training[:, 2]
+
+    pred_df_testing[f"proba_{driving_label}"] = pred_testing[:, 0]
+    pred_df_testing[f"proba_{dump_label}"] = pred_testing[:, 1]
+    pred_df_testing[f"proba_{load_label}"] = pred_testing[:, 2]
 
     # store load and dump avg. probability
-    (
-        load_proba,
-        dump_proba,
-        incorrect_load_proba,
-        incorrect_dump_proba,
-    ) = get_avg_probabilities(pred_df_testing)
+    (load_proba, dump_proba, driving_proba) = get_avg_probabilities(pred_df_testing)
     # save to file
-    write_proba_score_test_data(
-        load_proba, dump_proba, incorrect_load_proba, incorrect_dump_proba
-    )
+    write_proba_score_test_data(load_proba, dump_proba, driving_proba)
 
     save_pred_df(pred_df_testing, "testing")
     save_pred_df(pred_df_training, "training")
 
 
-def _plot_pred_vs_empirical() -> None:
-    pred_df = read_and_normalize_data(
-        f"{FOLDER_NAME}/preds/preds_load_dump_testing.csv"
-    )
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=False)
-    n_samples = range(len(pred_df))
-    dataset = arg_track_performance().data_set
-    # plot Load and Dump in seperate subfigures
-    for idx, label in enumerate(["Load", "Dump"]):
-        # plot prediction
-        plot_data(
-            axs[idx],
-            n_samples,
-            pred_df[f"pred_{label}"],
-            f"pred {label}",
-            "s",
-            "tab:red",
-            7,
-        )
-        # plot empirical
-        plot_data(
-            axs[idx], n_samples, pred_df[label], label, "o", "tab:blue", 7, alpha=0.5
-        )
+# def _plot_pred_vs_empirical() -> None:
+#     pred_df = read_and_normalize_data(
+#         f"{FOLDER_NAME}/preds/preds_load_dump_testing.csv"
+#     )
+#     fig, axs = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=False)
+#     n_samples = range(len(pred_df))
+#     dataset = arg_track_performance().data_set
+#     # plot Load and Dump in seperate subfigures
+#     for idx, label in enumerate(["Load", "Dump"]):
+#         # plot prediction
+#         plot_data(
+#             axs[idx],
+#             n_samples,
+#             pred_df[f"pred_{label}"],
+#             f"pred {label}",
+#             "s",
+#             "tab:red",
+#             7,
+#         )
+#         # plot empirical
+#         plot_data(
+#             axs[idx], n_samples, pred_df[label], label, "o", "tab:blue", 7, alpha=0.5
+#         )
 
-        axs[idx].legend()
-        axs[idx].set_title(f"{label}, training_file: {dataset.split('.csv')[0]}")
-        # axs[idx].set_ylim(0.8, 1.05)
+#         axs[idx].legend()
+#         axs[idx].set_title(f"{label}, training_file: {dataset.split('.csv')[0]}")
+#         # axs[idx].set_ylim(0.8, 1.05)
 
-    fig.tight_layout()
-    fig.savefig(
-        f"{FOLDER_NAME}/pngs/empirical_vs_normalized_preds{dataset.split('.csv')[0]}.png"
-    )
+#     fig.tight_layout()
+#     fig.savefig(
+#         f"{FOLDER_NAME}/pngs/empirical_vs_normalized_preds{dataset.split('.csv')[0]}.png"
+#     )
 
 
 if __name__ == "__main__":
@@ -171,4 +179,4 @@ if __name__ == "__main__":
 
     _train_lightgbm_and_plot_metric()
     _load_and_predict()
-    _plot_pred_vs_empirical()
+    # _plot_pred_vs_empirical()
