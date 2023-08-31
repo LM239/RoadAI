@@ -85,7 +85,7 @@ class Criteria(BaseModel):
     load_expected_time: int = 300  # Seconds expected for load time
 
     idle_speed_limit: int = (
-        20  # Maximum speed km/h to say vehicle stands still, in relation to idle time
+        10  # Maximum speed km/h to say vehicle stands still, in relation to idle time
     )
 
 
@@ -719,6 +719,7 @@ class Automated_load_dump_for_machine:
                     meters_between / (seconds_between + 0.000001)
                 ) * 3.6
 
+                # With this if/else we accept load and dump as idle as well
                 if not self.stats.day_stats_set:
                     # Add the speed to a list for entire day
                     self.stats.day_speeds.append(speed_kmh)
@@ -729,7 +730,19 @@ class Automated_load_dump_for_machine:
                     # Add the timestamp for the two above values
                     self.stats.day_times.append(current_pos.timestamp)
 
-                # First check if we are in a dumping or loading "zone"
+                if speed_kmh < self.criterias.idle_speed_limit:
+                    temp_idle_list.points.append((current_pos.lat, current_pos.lon))
+                    temp_idle_list.times.append(current_time)
+                    if (
+                        i == len(self.stats.all_positions[1:]) - 1
+                    ):  # i.e. last iteration
+                        self.stats.list_of_idle_times.append(temp_idle_list)
+                else:
+                    if len(temp_idle_list.points) > 0:
+                        self.stats.list_of_idle_times.append(temp_idle_list)
+                        temp_idle_list = Points_times()  # Re-initialize
+
+                """ # First check if we are in a dumping or loading "zone"
                 if within_activity_seconds(
                     current_time,
                     self.stats.load.times,
@@ -758,7 +771,7 @@ class Automated_load_dump_for_machine:
                     if (
                         i == len(self.stats.all_positions[1:]) - 1
                     ):  # i.e. last iteration
-                        self.stats.list_of_idle_times.append(temp_idle_list)
+                        self.stats.list_of_idle_times.append(temp_idle_list) """
         self.stats.day_stats_set = True
         print("Finished!")
 
@@ -775,8 +788,12 @@ class Automated_load_dump_for_machine:
         print("**************")
         print("Machine was idle ", len(self.stats.list_of_idle_times), " times.")
         print(
-            "Idle for a total of (HH-MM-SS): ",
+            "Idle for a total of (HH:MM:SS): ",
             str(timedelta(seconds=total_time_idle_seconds)),
+        )
+        print(
+            "The average idle time per trip is: ",
+            str(timedelta(seconds=(total_time_idle_seconds / len(self.machine.trips)))),
         )
         print("Heatmap of places it was idle.")
 
@@ -885,15 +902,16 @@ class Automated_load_dump_for_machine:
         )
 
         fig.show()
+        fig.write_html("./data/output_html/idle_speed_dist.html")
 
 
 if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY
-    print(Automated_load_dump_for_machine.__doc__)
-    automated_for_given_machine = Automated_load_dump_for_machine(day, 30)
-    automated_for_given_machine.predict_loaddump()
-    automated_for_given_machine.prediction_time_plot()
-    automated_for_given_machine.prediction_gantt_plot()
+    # print(Automated_load_dump_for_machine.__doc__)
+    automated_for_given_machine = Automated_load_dump_for_machine(day, 39)
+    # automated_for_given_machine.predict_loaddump()
+    # automated_for_given_machine.prediction_time_plot()
+    # automated_for_given_machine.prediction_gantt_plot()
     automated_for_given_machine.find_idle_time()
     automated_for_given_machine.idle_time_plot()
     automated_for_given_machine.idle_report()
