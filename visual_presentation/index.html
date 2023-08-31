@@ -8,8 +8,9 @@
     <a class="nav-link" href="#">Notebook (code)</a>
     <a class="nav-link" href="#">GitHub repository</a>
     <a class="nav-link" href="#">NMI article</a>
+    <a class="nav-link" href="https://www.nora.ai/competition/roadai-competition/">Competition site</a>
 
-    <a id="about" class="nav-link" href="#">About the team</a>
+    <a id="about" class="nav-link" href="about_team.html">About the team</a>
   </nav>
   <br>
   <br>
@@ -24,100 +25,75 @@
   <div>
     <h1>RoadAI</h1>
     <h2>Team NoDig</h2>
-    <h3>A very short introduction to the competition</h2>
-      <p>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam luctus ipsum tincidunt arcu laoreet, at luctus orci
-        convallis. Suspendisse condimentum imperdiet sodales. Nullam vitae hendrerit augue. In lacinia metus justo, id
-        gravida sapien convallis ut. Donec neque ipsum, commodo euismod aliquam et, viverra vel augue. Sed tempus non
-        justo luctus tempor. Pellentesque ac elementum justo. Proin cursus dolor ac nibh blandit, at semper justo
-        dignissim. Mauris consequat, augue nec feugiat dictum, arcu massa placerat mi, eget commodo nibh libero vel
-        felis. Quisque a ligula a risus ullamcorper imperdiet at et massa. Ut feugiat vitae neque vel sagittis. Sed eget
-        lacus a tellus sagittis sagittis. Donec aliquet ligula non risus congue pretium. Cras mollis vehicula mauris,
-        nec dictum erat rutrum lobortis. Suspendisse elementum sapien at diam dignissim rutrum.
-      </p>
-      <h3>
-        Our approach
-      </h3>
-      <p>Here we will put some text describing how we have approached the competition and what we have done in very
-        brief terms.</p>
-      <h3>
-        Part one: Data preprocessing
-      </h3>
-      <ul>
-        <li>Write about how we have decided to load and preprocess data</li>
-        <li>Include some plots if possible</li>
-      </ul>
-      <h3>
-        Part two: Automatic load and dump deection
-      </h3>
-      <ul>
-        <li>Write about our load and dump algorithm</li>
-        <li>Include several plots, both of what it does and performance</li>
-      </ul>
-      <h3>
-        Part three: Automatic progress report
-      </h3>
-      <ul>
-        <li>Write about our daily report algorithm</li>
-        <li>Include several plots, both of what it does and performance</li>
-      </ul>
-      <hr>
-      <h2>Dette er et eksempel på hvordan det vil se ut</h2>
-      <h3>Automatisering av load og dump</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam luctus
-          ipsum tincidunt arcu laoreet, at luctus orci convallis. Suspendisse
-          condimentum imperdiet sodales. Nullam vitae hendrerit augue. In lacinia
-          metus justo, id gravida sapien convallis ut. Donec neque ipsum, commodo
-          euismod aliquam et, viverra vel augue. Sed tempus non justo luctus
-          tempor. Pellentesque ac elementum justo. Proin cursus dolor ac nibh
-          blandit, at semper justo dignissim. Mauris consequat, augue nec feugiat
-          dictum, arcu massa placerat mi, eget commodo nibh libero vel felis.
-          Quisque a ligula a risus ullamcorper imperdiet at et massa. Ut feugiat
-          vitae neque vel sagittis. Sed eget lacus a tellus sagittis sagittis.
-          Donec aliquet ligula non risus congue pretium. Cras mollis vehicula
-          mauris, nec dictum erat rutrum lobortis. Suspendisse elementum sapien at
-          diam dignissim rutrum.
-        </p>
-        <br />
-        <iframe src="idle_speed_dist.html" width="100%" height="400"></iframe>
+    <h3>A very short introduction to the competition</h3>
+    <p>
+      The RoadAI competition aims to reduce emissions in road construction. 1.5% of Norwegian CO2 emission resides
+      from construction machines. The Norwegian Artificial Intelligence Research Consortium (NORA) hosts the
+      competition,
+      in collaboration with Skanska, Sintef, Nordic Machine Intelligence Journal, and several other partners.
+      Kicking
+      off in June 2023, the competition has run for three months, ending on the 10th of September. The overall aim
+      of
+      the competition is to demonstrate how road construction can become more sustainable through the
+      use of data.
+      <br>
+      <br>
+      Skanska has provided the participants with real machine data mainly recorded in March, April, and May in
+      2022.
+      The data stems from the construction of the E16 highway, between Bjørum and Skaret, just west of Oslo. There
+      are
+      four main components in the data set; GPS data, machine data (AEMP), vibration data, and drone photos.
+    </p>
+    <h3>
+      Our approach
+    </h3>
+    <p>
+      Team NoDig's approach has been founded on a desire to develop feasible tools for automated decision support.
+      A necessary first step has been the preprocessing of raw data. Any successful data analysis or machine
+      learning model relies on relevant, representative, and usable input of data. Part one in the next section will
+      elaborate on how we have preprocessed the raw data. Part two demonstrates how we have automated the load and
+      dump activities of the machines. Finally, part three of our algorithm demonstrates the automated generation
+      of a daily report.
+    </p>
+    <h2>The algorithm</h2>
+    <h3>
+      Part one: Data preprocessing
+    </h3>
+    <p>
+      GPS data has been our main source for input to each algorithm. From the initial CSV files we have created
+      intuitive and usable classes that allows for analysis and machine learning. It is also simple to add new features
+      (i.e. covariates) to the classes. The parts that follow will be built from the original GPS data. Attemps to
+      include machine and vibration data has been made, but with unreliable results. We will instead provide remarks and
+      brief discussions where we would have liked to make use of the mentioned data.
+    </p>
+    <h3>
+      Part two: Automatic load and dump detection with LightGBM
+    </h3>
+    <p>
+      Loading and dumping of trucks and dumpers has been performed manually by drivers in our data. There appear to be
+      varying definitions of when loading and dumping occurs exactly. At the same time, a driver can forget to report
+      an activity, leaving mistakes and reducing overall data quality. In the long term, one should aim to reduce the
+      need for manual registration of data. This should improve data consistency and ultimately enhance the potential of
+      any analysis or model that is founded on the data. It will also reduce the driver's need to interact with the
+      device during trips, which in turn should have a positive effect on overall efficiency.
+    </p>
+    <ul style="text-align: left;">
+      <li>Skrive om hvordan vi har preprossesert data</li>
+      <li>Skrive om modellen</li>
+      <li>Legge med et plots</li>
+    </ul>
+    <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
+    <h3>
+      Part three: Automatic progress report
+    </h3>
+    <ul style="text-align: left;">
+      <li>Skrive generelt om daily report</li>
+      <li>Skrive litt om hvorfor det kan være nødvendig, at det kan lages med straming data og "live"</li>
+      <li>Gå igjennom main features av klassen</li>
+      <li>Legge med plot på ting som kan være av interesse</li>
+    </ul>
 
-        <h2>Idle timeline</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam luctus
-          ipsum tincidunt arcu laoreet, at luctus orci convallis. Suspendisse
-          condimentum imperdiet sodales. Nullam vitae hendrerit augue. In lacinia
-          metus justo, id gravida sapien convallis ut. Donec neque ipsum, commodo
-          euismod aliquam et, viverra vel augue. Sed tempus non justo luctus
-          tempor. Pellentesque ac elementum justo. Proin cursus dolor ac nibh
-          blandit, at semper justo dignissim. Mauris consequat, augue nec feugiat
-          dictum, arcu massa placerat mi, eget commodo nibh libero vel felis.
-          Quisque a ligula a risus ullamcorper imperdiet at et massa. Ut feugiat
-          vitae neque vel sagittis. Sed eget lacus a tellus sagittis sagittis.
-          Donec aliquet ligula non risus congue pretium. Cras mollis vehicula
-          mauris, nec dictum erat rutrum lobortis. Suspendisse elementum sapien at
-          diam dignissim rutrum.
-        </p>
-        <br />
-        <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
-        <h2>Peak idle time map of machines</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam luctus
-          ipsum tincidunt arcu laoreet, at luctus orci convallis. Suspendisse
-          condimentum imperdiet sodales. Nullam vitae hendrerit augue. In lacinia
-          metus justo, id gravida sapien convallis ut. Donec neque ipsum, commodo
-          euismod aliquam et, viverra vel augue. Sed tempus non justo luctus
-          tempor. Pellentesque ac elementum justo. Proin cursus dolor ac nibh
-          blandit, at semper justo dignissim. Mauris consequat, augue nec feugiat
-          dictum, arcu massa placerat mi, eget commodo nibh libero vel felis.
-          Quisque a ligula a risus ullamcorper imperdiet at et massa. Ut feugiat
-          vitae neque vel sagittis. Sed eget lacus a tellus sagittis sagittis.
-          Donec aliquet ligula non risus congue pretium. Cras mollis vehicula
-          mauris, nec dictum erat rutrum lobortis. Suspendisse elementum sapien at
-          diam dignissim rutrum.
-        </p>
-        <br />
-        <iframe src="my_map.html" width="100%" height="600"></iframe>
+    <iframe src="my_map.html" width="100%" height="600"></iframe>
   </div>
 </body>
 

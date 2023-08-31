@@ -6,9 +6,9 @@
   color: White;
 
   /* centering text */
-  text-align: center;    /* horizontally */
-  line-height: 55px;     /* vertically */
-  
+  text-align: center; /* horizontally */
+  line-height: 55px; /* vertically */
+
   text-decoration: none;
 }
 
@@ -16,7 +16,7 @@
   width: 120px;
 
   background-color: RoyalBlue;
-  
+
   font-weight: bold;
 }
 
@@ -25,7 +25,6 @@
   top: 0;
   right: 0;
 }
-
 
 #topnav {
   width: 100%;
@@ -40,14 +39,13 @@
   font-size: 15px;
 }
 
-
 body {
-    text-align: center; /* Center-align content within the body */
-    width: 75%;
-    margin: auto;
-    font-family: "Roboto", sans-serif;
-  }
-  
+  text-align: center; /* Center-align content within the body */
+  width: 75%;
+  margin: auto;
+  font-family: "Roboto", sans-serif;
+}
+
 p {
   text-align: left;
   width: 60%;
@@ -60,4 +58,20 @@ iframe {
 h3 {
   text-align: left;
 }
-  
+
+.container {
+  display: flex;
+  align-items: center;
+}
+
+.text {
+  flex: 2; /* Adjust the flex value as needed */
+  padding: 20px; /* Reduced padding */
+  text-align: left;
+}
+
+.image img {
+  max-width: 80%;
+  height: auto;
+  display: block;
+}
