@@ -48,7 +48,7 @@ def load_csv_from_date(file_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def concat_df(files: list[Path]):
     """
-    Loads the given files as dataframes, concatenetes the results, and resets the index.
+    Loads the given files as dataframes, concatenates the results, and resets the index.
     """
     li = []
 
