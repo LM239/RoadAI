@@ -1,4 +1,3 @@
-#%%
 import dataloader
 from typing import Literal
 from tqdm import tqdm
@@ -313,15 +312,8 @@ if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY
     choosen_machine_type = 'Truck'  # Truck | Dumper
     # Here we test our function
+    # A bigger demonstration can be found in daily_report_demo notebook
     daily_report = DailyReport(day)
-
     daily_report.compute_idle_times(choosen_machine_type)
     daily_report.aggregated_idle_timeline()
     daily_report.plot_aggregated_idle_timeline()
-    daily_report.plot_peak_times(12)
-    daily_report.plot_idle_heatmap()
-    daily_report.compute_productivity()
-    daily_report.plot_productivity()
-    daily_report.interactive_map.plot_interactive_map()
-
-# %%
