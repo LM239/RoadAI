@@ -3,3 +3,4 @@ __pycache__/**
 .devcontainer/.zsh_history
 tmp/**
 misc_files/**
+notebooks/vibration_merge.ipynb
