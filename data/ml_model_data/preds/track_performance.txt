@@ -97,3 +97,14 @@ Dump avg. proba 0.4598145941402356...
 Driving proba: 0.9947507580978938
 
 
+...
+Training time: 8.343021327993483 s
+Changes: ....
+Data set: train_1_days_all_trucks_multi_new_feat.csv.
+Validation multi logloss: 0.026144726269851544
+------------------
+Load avg. proba: 0.6186404987801695
+Dump avg. proba 0.4598145941430035...
+Driving proba: 0.9947507580983207
+
+

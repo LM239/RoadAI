@@ -12,6 +12,8 @@ def convert_to_0_and_1s(df: pd.DataFrame, output_label: str):
 
 def get_probabilities(ndays) -> None:
     """
+    Calculates probabilities by using the complete test prediciton data set
+
     Get probabilities on form P(pred | event):
 
         P(pred_load | load)
@@ -46,10 +48,10 @@ def get_probabilities(ndays) -> None:
     ).to_csv(f"data/ml_model_data/preds/probabilities{ndays}.csv", index=False, sep=",")
 
 
-def plot_subfigure(
-    ax, time: pd.DataFrame, proba_label: pd.DataFrame, label: str
-) -> None:
-    ax.plot(time, proba_label, label=label)
+# def plot_subfigure(
+#     ax, time: pd.DataFrame, proba_label: pd.DataFrame, label: str
+# ) -> None:
+#     ax.plot(time, proba_label, label=label)
 
 
 def plot_visual_for_truck_on_single_day(
@@ -57,6 +59,8 @@ def plot_visual_for_truck_on_single_day(
     datestrings: list[str] = ["2022-03-07", "2022-03-08"],
 ):
     """
+    Plot 3 by 1 subplot for each machine for each day
+
     Args:
         MachineID: id of machine, e.g. 20. String if 2023 data
         datestring: yyyy-mm-dd
@@ -115,6 +119,6 @@ def plot_visual_for_truck_on_single_day(
 
 
 if __name__ == "__main__":
-    get_probabilities()
+    get_probabilities(1)
     plot_visual_for_truck_on_single_day()
     pass

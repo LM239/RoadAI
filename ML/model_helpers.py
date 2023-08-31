@@ -30,17 +30,17 @@ def column_name_df_preds(model_name: str) -> str:
     return "pred_" + model_name.split("_")[-1].split(".bin")[0]
 
 
-def read_and_normalize_data(file_path: str) -> pd.DataFrame:
-    pred_df = pd.read_csv(file_path, sep=",")
-    for col in ["pred_Dump", "pred_Load"]:
-        pred_df[col] = pred_df[col] / pred_df[col].max()
-    return pred_df
+# def read_and_normalize_data(file_path: str) -> pd.DataFrame:
+#     pred_df = pd.read_csv(file_path, sep=",")
+#     for col in ["pred_Dump", "pred_Load"]:
+#         pred_df[col] = pred_df[col] / pred_df[col].max()
+#     return pred_df
 
 
-def plot_data(ax, n_samples, data, label, marker, color, size, alpha=1.0) -> None:
-    ax.scatter(
-        n_samples, data, label=label, marker=marker, color=color, s=size, alpha=alpha
-    )
+# def plot_data(ax, n_samples, data, label, marker, color, size, alpha=1.0) -> None:
+#     ax.scatter(
+#         n_samples, data, label=label, marker=marker, color=color, s=size, alpha=alpha
+#     )
 
 
 def save_pred_df(df: pd.DataFrame, data_set_string: str) -> None:
@@ -51,7 +51,7 @@ def save_pred_df(df: pd.DataFrame, data_set_string: str) -> None:
     )
 
 
-def plot_metrics(
+def plot_learning_curve(
     booster: dict | LGBMModel,
     metric: str | None,
     ax,
@@ -115,20 +115,20 @@ def write_proba_score_test_data(
         )
 
 
-def arg_track_performance():
-    parser = argparse.ArgumentParser(
-        description="Explain the changes applied for this model compared to last. Did you change params? Dataset?"
-    )
-    parser.add_argument(
-        "--action",
-        type=str,
-        default="Some action",
-        help="Explain the changes applied for this model compared to last. Did you change params? Dataset?",
-    )
-    parser.add_argument(
-        "--data_set",
-        type=str,
-        default="default_dataset.csv",
-        help="Specify the data set to be used.",
-    )
-    return parser.parse_args()
+# def arg_track_performance():
+#     parser = argparse.ArgumentParser(
+#         description="Explain the changes applied for this model compared to last. Did you change params? Dataset?"
+#     )
+#     parser.add_argument(
+#         "--action",
+#         type=str,
+#         default="Some action",
+#         help="Explain the changes applied for this model compared to last. Did you change params? Dataset?",
+#     )
+#     parser.add_argument(
+#         "--data_set",
+#         type=str,
+#         default="default_dataset.csv",
+#         help="Specify the data set to be used.",
+#     )
+#     return parser.parse_args()

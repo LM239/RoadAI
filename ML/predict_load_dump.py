@@ -8,7 +8,7 @@ from model_helpers import (
     get_avg_probabilities,
     plot_split_value_histogram,
     save_pred_df,
-    plot_metrics,
+    plot_learning_curve,
     save_model,
     write_performance_to_txt_file,
     LightGBMParams,
@@ -24,8 +24,11 @@ def _train_lightgbm_and_plot_metric(
     dataset: str = "train_1_days_all_trucks_multi_new_feat.csv", action: str = "..."
 ) -> None:
     """
-    Train and fit model to trainng data (80% of available data), train on both
-    load and dump as lightgbm does not support multi-output regression
+    Train model on dataset of choice. To get a dataset, run automate_load_and_dump.ipynb
+    The model is saved in data/ml_model_data/models
+    The target variables are Dump, Load and Driving
+    Learning curve, feature importance and other output are plotted and be found in  data/ml_model_data/pngs
+    Small pieces of information about the training process and results are also found in data/ml_model_data/preds/track_performance.txt
     """
     df_training = pd.read_csv(f"data/ml_model_data/training_data/{dataset}")
 
@@ -62,13 +65,16 @@ def _train_lightgbm_and_plot_metric(
         ],
     )
 
-    plot_metrics(
+    plot_learning_curve(
         booster=booster_record_eval,
         metric=LightGBMParams.params["metric"],
         ax=ax_lc,
         dataset=dataset,
     )
-    # save feature importances
+    fig_lc.tight_layout()
+    fig_lc.savefig(f"{FOLDER_NAME}/pngs/learning_curve.png")
+
+    # plot feature importances
     fig_fi = lgbm.plot_importance(model).figure
     fig_fi.tight_layout()
     fig_fi.savefig("data/ml_model_data/pngs/feature_importance.png")
@@ -77,25 +83,21 @@ def _train_lightgbm_and_plot_metric(
     for feature in X_train.columns:
         plot_split_value_histogram(model, feature)
 
-    training_time = time.perf_counter() - t0
-    # track the last val_loss to evaluate performance
+    # save training time, val_error at termination
     write_performance_to_txt_file(
-        training_time,
-        action,
+        time.perf_counter() - t0,
+        action,  # ignore this, only if you run from terminal and add arguments with argparse
         dataset,
         booster_record_eval["Val"]["multi_logloss"][-1],
     )
     save_model(model)
-
-    fig_lc.tight_layout()
-    fig_lc.savefig(f"{FOLDER_NAME}/pngs/learning_curve.png")
 
 
 def _load_and_predict(
     test_set: str = "test_1_days_all_trucks_multi_new_feat.csv",
 ) -> None:
     """
-    Load the two models and predict load and dump. Store the preds with the empirical data
+    Load model and predict on unseen data
     """
     df_testing = pd.read_csv(f"data/ml_model_data/testing_data/{test_set}")
 
@@ -112,16 +114,15 @@ def _load_and_predict(
     df_testing[f"proba_{driving_label}"] = pred_testing[:, 0]
     df_testing[f"proba_{dump_label}"] = pred_testing[:, 1]
     df_testing[f"proba_{load_label}"] = pred_testing[:, 2]
+    save_pred_df(df_testing, "testing")
 
+    ############ the same piece of info can be found in preds/probabilities #############
     # store load and dump avg. probability
     load_proba, dump_proba, driving_proba = get_avg_probabilities(df_testing)
     # save to file
     write_proba_score_test_data(load_proba, dump_proba, driving_proba)
 
-    save_pred_df(df_testing, "testing")
-
 
 if __name__ == "__main__":
     _train_lightgbm_and_plot_metric()
     _load_and_predict()
-    # _plot_pred_vs_empirical()
