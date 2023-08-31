@@ -13,7 +13,7 @@ class TripsLoader:
 
     def __init__(self, datestring: str) -> None:
         self._machines: dict[int, Machine] = {}
-
+        self.day: str = datestring
         info_df, trip_df = load_csv_from_date(f'{datestring}.csv')
 
         grouped_df = trip_df.groupby("TripLogId")

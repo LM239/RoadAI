@@ -2,3 +2,4 @@ data/**
 __pycache__/**
 .devcontainer/.zsh_history
 tmp/**
+misc_files/**
