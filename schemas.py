@@ -82,6 +82,88 @@ class Machine(BaseModel):
     def total_quantity(self) -> float:
         # The combined quantity of each trip
         return sum(trip.quantity for trip in self.trips)
+    
+    @computed_field
+    @cached_property
+    def all_positions(self) -> list[Position]:
+        all_pos = [trip.positions for trip in self.trips]
+        all_pos = [item for sublist in all_pos for item in sublist]
+        return all_pos
+
+    @computed_field
+    @cached_property
+    def all_loads(self) -> list[Position]:
+        temp_load : list[Position] = []
+        for trip in self.trips:
+            temp_load.append(Position(lat=trip.load_latlon[0],
+                                            lon=trip.load_latlon[1], 
+                                            uncertainty=0.0,
+                                            timestamp=trip.positions[0].timestamp))
+        return temp_load
+    
+    @computed_field
+    @cached_property
+    def all_dumps(self) -> list[Position]:
+        temp_dump : list[Position] = []
+        for trip in self.trips:
+            temp_dump.append(Position(lat=trip.dump_latlon[0],
+                                            lon=trip.dump_latlon[1], 
+                                            uncertainty=0.0,
+                                            timestamp=trip.positions[0].timestamp))
+        return temp_dump
+    
+    @computed_field
+    @cached_property
+    def list_of_idle_times(self) -> list[list[Position]]:
+        list_of_idle_times : list[list[Position]] = []
+        temp_idle_list: list[Position] = []
+        # We start processing. Are going to iterate over all positions, from first to last
+        for i in range(1, len(self.all_positions[1:])):
+            current_pos = self.all_positions[i]
+            prev_pos = self.all_positions[i - 1]
+            current_time = current_pos.timestamp
+
+            # Seconds passed since last timestamp
+            seconds_gone = (current_pos.timestamp -
+                            prev_pos.timestamp).total_seconds()
+
+            if seconds_gone > 0:
+                # Meters driven since last timestamp
+                meters_driven = geopy.distance.geodesic(
+                    (current_pos.lat, current_pos.lon), (prev_pos.lat, prev_pos.lon)
+                ).m
+
+                # Speed during last timestamp
+                speed_kmh = (meters_driven / seconds_gone) * 3.6
+
+                if speed_kmh < 5:  # Speed limit - can be changed as user want
+                    temp_idle_list.append(
+                        Position(lat=current_pos.lat,
+                                lon=current_pos.lon,
+                                uncertainty=0,
+                                timestamp=current_time)
+                    )
+                    if (
+                        i == len(self.all_positions[1:]) - 1
+                    ):  # i.e. last iteration
+                        list_of_idle_times.append(temp_idle_list)
+                else:
+                    if len(temp_idle_list) > 0:
+                        list_of_idle_times.append(temp_idle_list)
+                        temp_idle_list = []  # Re-initialize
+        
+        return list_of_idle_times
+
+    @computed_field
+    @cached_property
+    def total_idle_seconds(self) -> float:
+        return sum(
+                    [
+                        (item[-1].timestamp - item[0].timestamp).total_seconds()
+                        for item in self.list_of_idle_times
+                    ]
+                )
+
 
     @property
     def soil_trips(self):

@@ -2,107 +2,12 @@
 import dataloader
 from typing import Literal
 from tqdm import tqdm
-from datetime import datetime, timedelta
-from pydantic import BaseModel
-from schemas import Position, Trip
-import geopy.distance
+from datetime import timedelta
 import plotly.graph_objects as go
 import plotly.express as px
 import ipyleaflet as L
 import numpy as np
 from interactive_map import InteractiveMap
-
-
-class Idle_machine(BaseModel):
-    """
-    Keep values for a single machine that is idle at least once during a day.
-    """
-    machine_id: str | int
-    trips: list[Trip]
-    load: list[Position]  # Load points and times
-    dump: list[Position]  # Dump points and times
-    list_of_idle_times: list[list[Position]]
-    total_idle_seconds: float
-
-class Stats(BaseModel):
-    """
-    Relevant and useful information about a single machine for a selected day
-    """
-    # Store relevant data on a machine
-    all_positions: list[Position] = []  # Positions recorded during a day
-    load: list[Position] = []  # Load points and times
-    dump: list[Position] = []  # Dump points and times
-    # List of all times idle during a day
-    list_of_idle_times: list[list[Position]] = []
-
-
-class MachineSummary:
-    """
-    Allows for computation of idle time for a single machine and trips for that machine on a selected day.
-    """
-
-    def __init__(self, trips, machine_nb: int) -> None:
-        # Loading gps data for selected day and day before
-
-        self.machine = trips._machines[machine_nb]
-        self.stats = Stats()
-
-        all_pos = [trip.positions for trip in self.machine.trips]
-        self.stats.all_positions = [
-            item for sublist in all_pos for item in sublist]
-        for trip in self.machine.trips:
-            self.stats.load.append(Position(lat=trip.load_latlon[0],
-                                            lon=trip.load_latlon[1], 
-                                            uncertainty=0.0,
-                                            timestamp=trip.positions[0].timestamp))
-
-            for position in trip.positions:
-                if trip.dump_latlon == (position.lat, position.lon):
-                    self.stats.dump.append(Position(lat=trip.dump_latlon[0],
-                                            lon=trip.dump_latlon[1], 
-                                            uncertainty=0.0,
-                                            timestamp=position.timestamp))
-                    break
-
-    def find_idle_time(self):
-        # A list containing idle periods before passed to object
-        temp_idle_list: list[Position] = []
-
-        # We start processing. Are going to iterate over all positions, from first to last
-        for i in range(1, len(self.stats.all_positions[1:])):
-            current_pos = self.stats.all_positions[i]
-            prev_pos = self.stats.all_positions[i - 1]
-            current_time = current_pos.timestamp
-
-            # Seconds passed since last timestamp
-            seconds_gone = (current_pos.timestamp -
-                            prev_pos.timestamp).total_seconds()
-
-            if seconds_gone > 0:
-                # Meters driven since last timestamp
-                meters_driven = geopy.distance.geodesic(
-                    (current_pos.lat, current_pos.lon), (prev_pos.lat, prev_pos.lon)
-                ).m
-
-                # Speed during last timestamp
-                speed_kmh = (meters_driven / seconds_gone) * 3.6
-
-                if speed_kmh < 5:  # Speed limit - can be changed as user want
-                    temp_idle_list.append(
-                        Position(lat=current_pos.lat,
-                                 lon=current_pos.lon,
-                                 uncertainty=0,
-                                 timestamp=current_time)
-                    )
-                    if (
-                        i == len(self.stats.all_positions[1:]) - 1
-                    ):  # i.e. last iteration
-                        self.stats.list_of_idle_times.append(temp_idle_list)
-                else:
-                    if len(temp_idle_list) > 0:
-                        self.stats.list_of_idle_times.append(temp_idle_list)
-                        temp_idle_list = []  # Re-initialize
-
 
 class DailyReport:
     """
@@ -146,53 +51,42 @@ class DailyReport:
         # Loading gps data for selected day
         self.trips = dataloader.TripsLoader(day)
 
-        # Initializing Idle_machine - object that keeps track of when and where machines are idle
-        self.idle_machines : list[Idle_machine] = []#Idle_machines()
-
         self.productivity = {}
 
         self.interactive_map = InteractiveMap(self.trips)
+        for machine_id in self.trips._machines.keys():
+            self.trips._machines[machine_id].all_positions
+            self.trips._machines[machine_id].all_loads
+            self.trips._machines[machine_id].all_dumps
 
     # Function that computes idle times of choosen machine types for selected day
     def compute_idle_times(self, machine_type: Literal['Truck', 'Dumper', 'Tippbil']):
 
         print("Computing idle times for ", machine_type)
-        for machine_id in tqdm(self.trips._machines.keys()):
-            if self.trips._machines[machine_id].machine_type == machine_type:
-                temp_automated = MachineSummary(self.trips, machine_id)
-                temp_automated.find_idle_time()
-                temp_total_time_idle_seconds = sum(
-                    [
-                        (item[-1].timestamp - item[0].timestamp).total_seconds()
-                        for item in temp_automated.stats.list_of_idle_times
-                    ]
-                )
-
-                self.idle_machines.append(Idle_machine(
-                    machine_id=temp_automated.machine.machine_id,
-                    trips=temp_automated.machine.trips,
-                    load=temp_automated.stats.load,
-                    dump=temp_automated.stats.dump,
-                    list_of_idle_times=temp_automated.stats.list_of_idle_times,
-                    total_idle_seconds=temp_total_time_idle_seconds)
-                )
+        
+        for machine_id, machine in tqdm(self.trips._machines.items()):
+        #for machine in tqdm(self.machine_info):
+            if machine.machine_type == machine_type:
+                machine.list_of_idle_times
         print("Finished!")
 
     # Function that prepares for plotting of aggregated number of idle machines throughout day
     def aggregated_idle_timeline(self):
 
+        machine_keys = list(self.trips._machines.keys())
         # First machines first timestamp
-        first_timestamp = self.idle_machines[
-            0].trips[0].positions[0].timestamp
+        first_timestamp = self.trips._machines[machine_keys[0]].trips[0].positions[0].timestamp
         # First machines last timestamp
-        last_timestamp = self.idle_machines[
-            0].trips[-1].positions[-1].timestamp
-        for machine in self.idle_machines:
+        last_timestamp = self.trips._machines[machine_keys[0]].trips[-1].positions[-1].timestamp
+        for machine_id, machine in self.trips._machines.items():
             if machine.trips[0].positions[0].timestamp < first_timestamp:
                 first_timestamp = machine.trips[0].positions[0].timestamp
             if machine.trips[-1].positions[-1].timestamp > last_timestamp:
                 last_timestamp = machine.trips[-1].positions[-1].timestamp
-
+        
+        print(first_timestamp)
+        print(last_timestamp)
+        
         # Create a list of timestamps throughout day
         current_datetime = first_timestamp
         self.datetime_intervals = []
@@ -211,22 +105,22 @@ class DailyReport:
         # Now have a list of times, and list of machines
         for i in range(len(self.datetime_intervals)):
             time = self.datetime_intervals[i]
-            for m in self.idle_machines:
-                if m.trips[0].positions[0].timestamp < time < m.trips[-1].positions[-1].timestamp:
+            for machine_id, machine in self.trips._machines.items():
+                if machine.trips[0].positions[0].timestamp < time < machine.trips[-1].positions[-1].timestamp:
                     self.nb_of_machines_in_action[i] += 1
-                for it in m.list_of_idle_times:
+                for it in machine.list_of_idle_times:
                     if it[0].timestamp < time < it[-1].timestamp:
                         self.nb_of_idle_machines[i] += 1
 
                         # Check if we are waiting for load or dump
                         # Highest possible value
-                        smallest_time_above = m.trips[-1].positions[-1].timestamp
+                        smallest_time_above = machine.trips[-1].positions[-1].timestamp
                         waiting_for_load = True
 
-                        for lt in [point.timestamp for point in m.load]:
+                        for lt in [point.timestamp for point in machine.all_loads]:
                             if it[0].timestamp < lt < smallest_time_above:
                                 smallest_time_above = lt
-                        for dt in [point.timestamp for point in m.dump]:
+                        for dt in [point.timestamp for point in machine.all_dumps]:
                             if it[0].timestamp < dt < smallest_time_above:
                                 smallest_time_above = dt
                                 waiting_for_load = False
@@ -299,20 +193,20 @@ class DailyReport:
                 time = self.datetime_intervals[i]
                 print("At: ", time)
                 print("Idle machines: ", self.nb_of_idle_machines[i])
-                for m in self.idle_machines:
-                    for it in m.list_of_idle_times:
+                for machine_id, machine in self.trips._machines.items():
+                    for it in machine.list_of_idle_times:
                         if it[0].timestamp < time < it[-1].timestamp:
                             # Assuming its not moving a lot during this interval
                             list_of_positions.append((it[0].lat,it[0].lon))
                             # Check if we are waiting for load or dump
                             # Highest possible value
-                            smallest_time_above = m.trips[-1].positions[-1].timestamp
+                            smallest_time_above = machine.trips[-1].positions[-1].timestamp
                             waiting_for_load = True
 
-                            for lt in [point.timestamp for point in m.load]:
+                            for lt in [point.timestamp for point in machine.all_loads]:
                                 if it[0].timestamp < lt < smallest_time_above:
                                     smallest_time_above = lt
-                            for dt in [point.timestamp for point in m.dump]:
+                            for dt in [point.timestamp for point in machine.all_dumps]:
                                 if it[0].timestamp < dt < smallest_time_above:
                                     smallest_time_above = dt
                                     waiting_for_load = False
@@ -347,8 +241,8 @@ class DailyReport:
     def plot_idle_heatmap(self):
 
         list_of_idle_positions = []
-        for idle_machine in self.idle_machines:
-            temp_list = [item for sublist in idle_machine.list_of_idle_times for item in sublist]
+        for machine_id, machine in self.trips._machines.items():
+            temp_list = [item for sublist in machine.list_of_idle_times for item in sublist]
             temp_pos = [(pos.lat,pos.lon) for pos in temp_list]
             list_of_idle_positions.append(temp_pos)
 
@@ -371,15 +265,13 @@ class DailyReport:
 
             self.productivity[mass_type] = {}
 
-            for machine in self.trips._machines.keys():
-
-                temp_machine = self.trips._machines[machine]
+            for machine_id, machine in self.trips._machines.items():
 
                 time_list = []
                 mass_list = []
-                for index, trip in enumerate(temp_machine.trips):
+                for index, trip in enumerate(machine.trips):
 
-                    if index < len(temp_machine.trips)-1:  # Avoid last trip
+                    if index < len(machine.trips)-1:  # Avoid last trip
                         if trip.load == mass_type:
                             # Want it in hours
                             time_list.append((trip.duration/60.0))
@@ -387,7 +279,7 @@ class DailyReport:
                             mass_list.append(trip.quantity)
 
                 if sum(time_list) > 0:
-                    self.productivity[mass_type][temp_machine.machine_id] = sum(
+                    self.productivity[mass_type][machine.machine_id] = sum(
                         mass_list)/sum(time_list)
 
     # Function that plots productivity
