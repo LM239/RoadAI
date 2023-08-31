@@ -1,0 +1,12 @@
+Condition,Probabilities
+proba_Load | Load ,0.845432801566159
+proba_Driving | Load ,0.1312711629867444
+proba_Dump | Load ,0.02329603544709657
+
+proba_Load | Driving ,0.005145630653172995
+proba_Driving | Driving ,0.9810533837899928
+proba_Dump | Driving ,0.013800985556834136
+
+proba_Load | Dump ,0.03208811479810441
+proba_Driving | Dump ,0.31334892392332975
+proba_Dump | Dump ,0.6545629612785657

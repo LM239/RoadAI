@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import lightgbm as lgbm
 from pathlib import Path
+import argparse
 
 FOLDER_NAME = "data/ml_model_data"
 MODEL_FOLDER = Path(f"{FOLDER_NAME}/models")
@@ -66,6 +67,12 @@ def plot_metrics(
     )
 
 
+def plot_split_value_histogram(model: LGBMModel, feature: str) -> None:
+    fig_split_hist = lgbm.plot_split_value_histogram(model, feature).figure
+    fig_split_hist.tight_layout()
+    fig_split_hist.savefig(f"data/ml_model_data/pngs/split_value_hist_{feature}.png")
+
+
 def write_performance_to_txt_file(
     training_time: float,
     action_taken: str,
@@ -106,3 +113,22 @@ def write_proba_score_test_data(
         f.write(
             f"------------------\nLoad avg. proba: {load_proba}\nDump avg. proba {dump_proba}...\nDriving proba: {driving_proba}\n\n\n"
         )
+
+
+def arg_track_performance():
+    parser = argparse.ArgumentParser(
+        description="Explain the changes applied for this model compared to last. Did you change params? Dataset?"
+    )
+    parser.add_argument(
+        "--action",
+        type=str,
+        default="Some action",
+        help="Explain the changes applied for this model compared to last. Did you change params? Dataset?",
+    )
+    parser.add_argument(
+        "--data_set",
+        type=str,
+        default="default_dataset.csv",
+        help="Specify the data set to be used.",
+    )
+    return parser.parse_args()

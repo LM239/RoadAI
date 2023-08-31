@@ -13,16 +13,15 @@ def load_training_csv_files(
     )
 
 
-def split_data_into_training_and_testing(
-    name_of_data_set: str,
+def split_data_into_training_and_validation(
+    df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Splits data into training and testing(unseen data)
     """
-    data_set = load_training_csv_files(name_of_data_set)
     X, y = (
-        data_set.drop(["MachineID", "output_labels", "DateTime"], axis=1),
-        data_set["output_labels"],
+        df.drop(["MachineID", "output_labels", "DateTime"], axis=1),
+        df["output_labels"],
     )
     # delete preds if they exist
     # _delete_pred_columns(X)
