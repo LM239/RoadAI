@@ -25,7 +25,7 @@
   <div>
     <h1>RoadAI</h1>
     <h2>Team NoDig</h2>
-    <h3>A very short introduction to the competition</h3>
+    <h3>Competition Description</h3>
     <p>
       The RoadAI competition aims to reduce emissions in road construction. 1.5% of Norwegian CO2 emission resides
       from construction machines. The Norwegian Artificial Intelligence Research Consortium (NORA) hosts the
@@ -45,7 +45,7 @@
       four main components in the data set; GPS data, machine data (AEMP), vibration data, and drone photos.
     </p>
     <h3>
-      Our approach
+      Our Approach
     </h3>
     <p>
       Team NoDig's approach has been founded on a desire to develop feasible tools for automated decision support.
@@ -57,7 +57,7 @@
     </p>
     <h2>The algorithm</h2>
     <h3>
-      Part one: Data preprocessing
+      Part one: Data Preprocessing
     </h3>
     <p>
       GPS data has been our main source for input to each algorithm. From the initial CSV files we have created
@@ -67,7 +67,7 @@
       brief discussions where we would have liked to make use of the mentioned data.
     </p>
     <h3>
-      Part two: Automatic load and dump detection with LightGBM
+      Part two: Automatic Load and Dump Detection with LightGBM
     </h3>
     <p>
       Loading and dumping of trucks and dumpers has been performed manually by drivers in our data. There appear to be
@@ -84,10 +84,25 @@
     </ul>
     <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
     <h3>
-      Part three: Automatic progress report
+      Part three: Daily Report
     </h3>
+    <p>
+      Taking advantage of the avilable GPS data, mass quantities, and type of mass moved, we have developed a report 
+      displaying the daily progress at the construction site. The report includes an interactive plot, idle time 
+      statistics, and productivity information per machine per material type. The report is generated automatically 
+      for a chosen day. In the interactive map, the user can select machine type, and the amount of clusters for dump 
+      and load regions to display. Drone images from Skaret and Nordlandsdalen are overlayed in the map for better 
+      visuals on how the region changes over time as construction progresses. An aglomerate clustering and convex 
+      hull algorithm is used to plot polygons of load and dump regions. The ineractive plot informs on quantity moved
+      between regions, the top workers of the day (tonnes/hr), and total mass moved for each material type.
+      The idle time statistics shows the amount of machines idle or active at different times of the day, and the 
+      amount of machines waiting for a load or dump. For the times of the day when most machines are idle, the 
+      position of idle machines are displayed on a map, showcasing common idle regions as a heatmap. The productivity 
+      information shows the average amount of tonnes mass moved per hour for each machine ID. One plot for each 
+      material type.
+    </p>
     <ul style="text-align: left;">
-      <li>Skrive generelt om daily report</li>
+      <li>Skrive litt grenerelt om daily report</li>
       <li>Skrive litt om hvorfor det kan være nødvendig, at det kan lages med straming data og "live"</li>
       <li>Gå igjennom main features av klassen</li>
       <li>Legge med plot på ting som kan være av interesse</li>
