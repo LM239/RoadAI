@@ -134,9 +134,9 @@ class InteractiveMap:
 
         # add skaret og nordlandsdalen overlay
         im_overlay_skaret = ImageOverlay(
-            url=f'data/png_folder/{date_string_skaret}', bounds=file_to_bounds[date_string_skaret])
+            url=f'public_data/png_folder/{date_string_skaret}', bounds=file_to_bounds[date_string_skaret])
         im_overlay_nordlandsdalen = ImageOverlay(
-            url=f'data/png_folder/{date_string_nordlandsdalen}', bounds=file_to_bounds[date_string_nordlandsdalen])
+            url=f'public_data/png_folder/{date_string_nordlandsdalen}', bounds=file_to_bounds[date_string_nordlandsdalen])
         self.m.add_layer(im_overlay_skaret)
         self.m.add_layer(im_overlay_nordlandsdalen)
 
