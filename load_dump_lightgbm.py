@@ -1,18 +1,13 @@
 # %%
 import dataloader
-from typing import Literal
 from pydantic import BaseModel
 from tqdm import tqdm
-from datetime import timedelta
-import plotly.graph_objects as go
-import plotly.express as px
-import ipyleaflet as L
-from datetime import datetime, timedelta
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
-from schemas import Machine, Position
+from schemas import Machine
 import geopy.distance
 import matplotlib.pyplot as plt
 import joblib
