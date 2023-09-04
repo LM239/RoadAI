@@ -8,6 +8,7 @@ import ipyleaflet as L
 import numpy as np
 from interactive_map import InteractiveMap
 
+
 class DailyReport:
     """
     Allows for insight into idle time, mass moved by machine and more.
@@ -62,9 +63,9 @@ class DailyReport:
     def compute_idle_times(self, machine_type: Literal['Truck', 'Dumper', 'Tippbil']):
 
         print("Computing idle times for ", machine_type)
-        
+
         for machine_id, machine in tqdm(self.trips._machines.items()):
-        #for machine in tqdm(self.machine_info):
+            # for machine in tqdm(self.machine_info):
             if machine.machine_type == machine_type:
                 machine.list_of_idle_times
         print("Finished!")
@@ -74,18 +75,20 @@ class DailyReport:
 
         machine_keys = list(self.trips._machines.keys())
         # First machines first timestamp
-        first_timestamp = self.trips._machines[machine_keys[0]].trips[0].positions[0].timestamp
+        first_timestamp = self.trips._machines[machine_keys[0]
+                                               ].trips[0].positions[0].timestamp
         # First machines last timestamp
-        last_timestamp = self.trips._machines[machine_keys[0]].trips[-1].positions[-1].timestamp
+        last_timestamp = self.trips._machines[machine_keys[0]
+                                              ].trips[-1].positions[-1].timestamp
         for machine_id, machine in self.trips._machines.items():
             if machine.trips[0].positions[0].timestamp < first_timestamp:
                 first_timestamp = machine.trips[0].positions[0].timestamp
             if machine.trips[-1].positions[-1].timestamp > last_timestamp:
                 last_timestamp = machine.trips[-1].positions[-1].timestamp
-        
+
         print(first_timestamp)
         print(last_timestamp)
-        
+
         # Create a list of timestamps throughout day
         current_datetime = first_timestamp
         self.datetime_intervals = []
@@ -196,7 +199,7 @@ class DailyReport:
                     for it in machine.list_of_idle_times:
                         if it[0].timestamp < time < it[-1].timestamp:
                             # Assuming its not moving a lot during this interval
-                            list_of_positions.append((it[0].lat,it[0].lon))
+                            list_of_positions.append((it[0].lat, it[0].lon))
                             # Check if we are waiting for load or dump
                             # Highest possible value
                             smallest_time_above = machine.trips[-1].positions[-1].timestamp
@@ -231,8 +234,8 @@ class DailyReport:
                         m.add_layer(dump_mark)
                 # Display the map
                 display(m)
-                m.save('./data/output_html/my_map.html',
-                       title='PeakTime position and status')
+                # m.save('./data/output_html/my_map.html',
+                #       title='PeakTime position and status')
             else:
                 last_val = 0
 
@@ -241,8 +244,9 @@ class DailyReport:
 
         list_of_idle_positions = []
         for machine_id, machine in self.trips._machines.items():
-            temp_list = [item for sublist in machine.list_of_idle_times for item in sublist]
-            temp_pos = [(pos.lat,pos.lon) for pos in temp_list]
+            temp_list = [
+                item for sublist in machine.list_of_idle_times for item in sublist]
+            temp_pos = [(pos.lat, pos.lon) for pos in temp_list]
             list_of_idle_positions.append(temp_pos)
 
         list_of_idle_positions = [
@@ -254,6 +258,8 @@ class DailyReport:
         m.add_layer(heatmap)
         # Display the map
         display(m)
+        # m.save('./data/output_html/heatmap_idle.html',
+        #       title='Heatmap idle times')
 
     # Function that computes productivity as tons/hr (cited paper)
     def compute_productivity(self):
