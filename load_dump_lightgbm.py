@@ -19,75 +19,38 @@ import joblib
 import lightgbm as lgbm
 import time
 from lightgbm import early_stopping, record_evaluation, LGBMModel
-from sklearn.metrics import classification_report
-import json
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 # %%
 
 
-class points_times(BaseModel):
-    points: list[tuple[float, float]] = []
-    times: list[datetime] = []
-
-
 class stats(BaseModel):  # Represents actual data
-    all_positions: list[Position] = []  # Positions recorded during a day
-    load: points_times = points_times()  # Load points and times
-    dump: points_times = points_times()  # Dump points and times
     day_speeds: list[float] = []  # Speeds
     day_acceleration: list[float] = []
     day_dists: list[float] = []  # Distances between each recording
     day_times: list[datetime] = []  # Timestamp for two above lists
-    # Inner product of consecutive normalized driving vectors
-    inner_prods: list[float] = []
-    # lat1_minus_lat0 = []
-    # lon1_minus_lon0 = []
 
 
-class automated_load_dump_for_machine:
+class PrepareMachineData:
     def __init__(self, machine_data: Machine):
-        #  load_cluster_centers: typing.Any,# Both should be list[tuple[float, float]], should implement
-        #  dump_cluster_centers: typing.Any) -> None:
-
         self.machine = machine_data
         self.stats = stats()
 
-        all_pos = [trips.positions for trips in self.machine.trips]
-        self.stats.all_positions = [item for sublist in all_pos for item in sublist]
-        self.stats.load.points = [trips.load_latlon for trips in self.machine.trips]
-        self.stats.load.times = [
-            trips.positions[0].timestamp for trips in self.machine.trips
-        ]
-        self.stats.dump.points = [trips.dump_latlon for trips in self.machine.trips]
-
-        actual_dump_times = []
-        for (
-            t
-        ) in (
-            self.machine.trips
-        ):  # Not pretty, because we don't have dump time in trip info by default
-            temp_dump_laton = t.dump_latlon  # Must match latlons
-            for position in t.positions:
-                if temp_dump_laton == (position.lat, position.lon):
-                    actual_dump_times.append(position.timestamp)
-                    break
-        self.stats.dump.times = actual_dump_times
-
     def get_data(self):
+        load_points = [(load.lat, load.lon) for load in self.machine.all_loads]
+        dump_points = [(dump.lat, dump.lon) for dump in self.machine.all_dumps]
         # We keep track of how many meters we have driven since last dump or load
         meters_since_last_activity = 0
         time_since_last_activity = 0
-        self.stats.day_times.append(self.stats.all_positions[0].timestamp)
+        self.stats.day_times = [point.timestamp for point in self.machine.all_positions]
         # speed is added in the loop
 
         # We start predicting. Are going to iterate over all positions, from first to last
-        for i in range(1, len(self.stats.all_positions) - 1):
-            next_pos = self.stats.all_positions[i + 1]
-            current_pos = self.stats.all_positions[i]
-            prev_pos = self.stats.all_positions[i - 1]
+        for i in range(1, len(self.machine.all_positions) - 1):
+            next_pos = self.machine.all_positions[i + 1]
+            current_pos = self.machine.all_positions[i]
+            prev_pos = self.machine.all_positions[i - 1]
 
             # Meters driven since last timestamp
             meters_driven = geopy.distance.geodesic(
@@ -129,31 +92,32 @@ class automated_load_dump_for_machine:
             self.stats.day_acceleration.append(acceleration_i_minus_1)  # m/s^2
             self.stats.day_speeds.append(speed_ms_i_minus_1)  # m/s
 
-            self.stats.day_times.append(current_pos.timestamp)
-
             # if we have either load or dump, distance and time from last activity is set to 0
-            for sublist in [self.stats.load.points, self.stats.dump.points]:
-                # , self.stats.dump.points]:
+            for sublist in [load_points, dump_points]:
                 if (
-                    self.stats.all_positions[i].lat,
-                    self.stats.all_positions[i].lon,
+                    self.machine.all_positions[i].lat,
+                    self.machine.all_positions[i].lon,
                 ) in sublist:
                     meters_since_last_activity = 0
                     time_since_last_activity = 0
 
     def get_df_with_ml_data(self):
-        load_times_set = set(self.stats.load.times)
-        dump_times_set = set(self.stats.dump.times)
-        positions = self.stats.all_positions
-        latitude = [sublist.lat for sublist in positions]
-        longitude = [sublist.lon for sublist in positions]
-        uncertainty = [sublist.uncertainty for sublist in positions]
+        load_times = [load.timestamp for load in self.machine.all_loads]
+        dump_times = [dump.timestamp for dump in self.machine.all_dumps]
+        print("load:", load_times)
+        print("dump", dump_times)
+        load_times_set = set(load_times)
+        dump_times_set = set(dump_times)
+        latitude = [point.lat for point in self.machine.all_positions]
+        longitude = [point.lon for point in self.machine.all_positions]
+        uncertainty = [point.uncertainty for point in self.machine.all_positions]
         lat1_minus_lat0 = [
             latitude[i] - latitude[i - 1] for i in range(1, len(latitude))
         ]
         lon1_minus_lon0 = [
             longitude[i] - longitude[i - 1] for i in range(1, len(longitude))
         ]
+
         # append some value to be removed after df is constructed
         lat1_minus_lat0.append(lat1_minus_lat0[-1])
         lon1_minus_lon0.append(lon1_minus_lon0[-1])
@@ -182,29 +146,30 @@ class automated_load_dump_for_machine:
 
         # add another day time as the for loop excludes the last value
         # this value will be removed anyways
-        self.stats.day_times.append(self.stats.day_times[-1])
+        # self.stats.day_times.append(self.stats.day_times[-1])
         load = [time in load_times_set for time in self.stats.day_times]
         dump = [time in dump_times_set for time in self.stats.day_times]
+        print([i for i, x in enumerate(load) if x])
+        print([i for i, x in enumerate(dump) if x])
         # return True if either dump or load is True
         output_labels = [d or l for d, l in zip(dump, load)]
 
         for i in range(len(output_labels)):
             current_time = self.stats.day_times[i]  # The current timestamp
-            if current_time in self.stats.load.times:
+            if current_time in load_times:
                 output_labels[i] = "Load"
-            elif current_time in self.stats.dump.times:
+            elif current_time in dump_times:
                 output_labels[i] = "Dump"
             else:
                 output_labels[i] = "Driving"
 
+        print(output_labels)
         df = pd.DataFrame(
             {
                 "MachineID": [self.machine.machine_id] * len(self.stats.day_times),
                 "DateTime": self.stats.day_times,
-                # "Time_from_start": [(time.min - self.stats.day_times[0].min) for time in self.stats.day_times],
                 "Speed": self.stats.day_speeds,
                 "Acceleration": self.stats.day_acceleration,
-                # "Inner_products": self.stats.inner_prods,
                 "Latitude": latitude,
                 "Longitude": longitude,
                 "Uncertainty": uncertainty,
@@ -212,9 +177,6 @@ class automated_load_dump_for_machine:
                 "Lon1_minus_lon0": lon1_minus_lon0,
                 "speed_north_south": speed_north_south,
                 "speed_east_west": speed_east_west,
-                # "km_from_last_event": self.meters_from_last_act,
-                # "seconds_from_last_event": self.seconds_since_last_act,
-                # "is_next_load": self.is_next_load,
                 "output_labels": output_labels,
             }
         )
@@ -374,13 +336,10 @@ class LoadDumpLightGBM:
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
             trip = dataloader.TripsLoader(day)
-            for unique_vehicle in trip._machines.keys():
-                temp_machine = trip._machines[unique_vehicle]
-                if temp_machine.machine_type == machine_type:
+            for machine_id, machine in trip._machines.items():
+                if machine.machine_type == machine_type:
                     # machine_of_interest = trip._machines[unique_vehicle]
-                    automated_for_given_machine = automated_load_dump_for_machine(
-                        temp_machine
-                    )
+                    automated_for_given_machine = PrepareMachineData(machine)
                     automated_for_given_machine.get_data()
                     df_vehicle = automated_for_given_machine.get_df_with_ml_data()
 
