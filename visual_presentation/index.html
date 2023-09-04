@@ -76,7 +76,26 @@
       need for manual registration of data. This should improve data consistency and ultimately enhance the potential of
       any analysis or model that is founded on the data. It will also reduce the driver's need to interact with the
       device during trips, which in turn should have a positive effect on overall efficiency.
+      <br>
+      <br>
+      We assume there is a continuous stream of data from the device in some machine. We do not make any assumptions
+      about the frequency of these recored points, but assume that every point can be classified as "Driving", "Loading"
+      or "Dumping". Our aim has been to classify each point as it has come through, on the basis of available data up
+      until that given point. There is, by definition, one single loading point and one single dumping point per trip.
+      The rest of the recordings are considered to be "driving" points. The number of such points varies per trip, but
+      we typically observe more than 100 and less than 1000 points.
+      <br>
+      <br>
+      As previously mentioned, the drivers seem to register a dump and load at various times, e.g. when stopping to
+      load, or when finished loading. Individual differences between the drivers, coupled with GPS inaccuracy makes it
+      difficult to spot the exact point the driver records an activity. Therefore, we argue that one could merge
+      consecutive points and base our classification on that. This provide the classification with robustness and
+      generalizes better between drivers and machines.
     </p>
+    <p style="color:red;">Mats should write about preprocessing, covariates and plots.</p>
+    <img src="learning_curve_25_days_5_group_size.png">
+    <img src="confusion_matrix.png">
+
     <ul style="text-align: left;">
       <li>Skrive om hvordan vi har preprossesert data</li>
       <li>Skrive om modellen</li>
@@ -87,18 +106,18 @@
       Part three: Daily Report
     </h3>
     <p class="left-aligned-text">
-      Taking advantage of the avilable GPS data, mass quantities, and type of mass moved, we have developed a report 
-      displaying the daily progress at the construction site. The report includes an interactive plot, idle time 
-      statistics, and productivity information per machine per material type. The report is generated automatically 
-      for a chosen day. In the interactive map, the user can select machine type, and the amount of clusters for dump 
-      and load regions to display. Drone images from Skaret and Nordlandsdalen are overlayed in the map for better 
-      visuals on how the region changes over time as construction progresses. An aglomerate clustering and convex 
+      Taking advantage of the avilable GPS data, mass quantities, and type of mass moved, we have developed a report
+      displaying the daily progress at the construction site. The report includes an interactive plot, idle time
+      statistics, and productivity information per machine per material type. The report is generated automatically
+      for a chosen day. In the interactive map, the user can select machine type, and the amount of clusters for dump
+      and load regions to display. Drone images from Skaret and Nordlandsdalen are overlayed in the map for better
+      visuals on how the region changes over time as construction progresses. An aglomerate clustering and convex
       hull algorithm is used to plot polygons of load and dump regions. The ineractive plot informs on quantity moved
       between regions, the top workers of the day (tonnes/hr), and total mass moved for each material type.
-      The idle time statistics shows the amount of machines idle or active at different times of the day, and the 
-      amount of machines waiting for a load or dump. For the times of the day when most machines are idle, the 
-      position of idle machines are displayed on a map, showcasing common idle regions as a heatmap. The productivity 
-      information shows the average amount of tonnes mass moved per hour for each machine ID. One plot for each 
+      The idle time statistics shows the amount of machines idle or active at different times of the day, and the
+      amount of machines waiting for a load or dump. For the times of the day when most machines are idle, the
+      position of idle machines are displayed on a map, showcasing common idle regions as a heatmap. The productivity
+      information shows the average amount of tonnes mass moved per hour for each machine ID. One plot for each
       material type.
     </p>
     <ul style="text-align: left;">
