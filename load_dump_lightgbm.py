@@ -104,8 +104,6 @@ class PrepareMachineData:
     def get_df_with_ml_data(self):
         load_times = [load.timestamp for load in self.machine.all_loads]
         dump_times = [dump.timestamp for dump in self.machine.all_dumps]
-        print("load:", load_times)
-        print("dump", dump_times)
         load_times_set = set(load_times)
         dump_times_set = set(dump_times)
         latitude = [point.lat for point in self.machine.all_positions]
@@ -149,8 +147,6 @@ class PrepareMachineData:
         # self.stats.day_times.append(self.stats.day_times[-1])
         load = [time in load_times_set for time in self.stats.day_times]
         dump = [time in dump_times_set for time in self.stats.day_times]
-        print([i for i, x in enumerate(load) if x])
-        print([i for i, x in enumerate(dump) if x])
         # return True if either dump or load is True
         output_labels = [d or l for d, l in zip(dump, load)]
 
@@ -163,7 +159,6 @@ class PrepareMachineData:
             else:
                 output_labels[i] = "Driving"
 
-        print(output_labels)
         df = pd.DataFrame(
             {
                 "MachineID": [self.machine.machine_id] * len(self.stats.day_times),
@@ -539,7 +534,7 @@ class LoadDumpLightGBM:
 # %%
 
 
-myModel = LoadDumpLightGBM(nb_days=2)
+myModel = LoadDumpLightGBM(nb_days=25)
 myModel.load_data()
 myModel.fit()
 myModel.predict()
