@@ -38,7 +38,8 @@ class PrepareMachineData:
         # We keep track of how many meters we have driven since last dump or load
         meters_since_last_activity = 0
         time_since_last_activity = 0
-        self.stats.day_times = [point.timestamp for point in self.machine.all_positions]
+        self.stats.day_times = [
+            point.timestamp for point in self.machine.all_positions]
         # speed is added in the loop
 
         # We start predicting. Are going to iterate over all positions, from first to last
@@ -103,7 +104,8 @@ class PrepareMachineData:
         dump_times_set = set(dump_times)
         latitude = [point.lat for point in self.machine.all_positions]
         longitude = [point.lon for point in self.machine.all_positions]
-        uncertainty = [point.uncertainty for point in self.machine.all_positions]
+        uncertainty = [
+            point.uncertainty for point in self.machine.all_positions]
         lat1_minus_lat0 = [
             latitude[i] - latitude[i - 1] for i in range(1, len(latitude))
         ]
@@ -261,8 +263,10 @@ def plot_learning_curve(
 
 def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
     # filter to return only rows where we have loads and dumps
-    true_loads_rows = df_pred.loc[df_pred["output_labels"] == "Load", "proba_Load"]
-    true_dumps_rows = df_pred.loc[df_pred["output_labels"] == "Dump", "proba_Dump"]
+    true_loads_rows = df_pred.loc[df_pred["output_labels"]
+                                  == "Load", "proba_Load"]
+    true_dumps_rows = df_pred.loc[df_pred["output_labels"]
+                                  == "Dump", "proba_Dump"]
     true_driving_rows = df_pred.loc[
         df_pred["output_labels"] == "Driving", "proba_Driving"
     ]
@@ -323,7 +327,7 @@ class LoadDumpLightGBM:
         df_testing_all = pd.DataFrame()
 
         for day in tqdm(
-            self.days[self.starting_from : self.starting_from + self.nb_days]
+            self.days[self.starting_from: self.starting_from + self.nb_days]
         ):
             trip = dataloader.TripsLoader(day)
             for machine_id, machine in trip._machines.items():
@@ -349,12 +353,14 @@ class LoadDumpLightGBM:
                     # df_training.drop("DateTime")
                     # df_training.insert(1,"DateTime start": d)
 
-                    df_training_all = pd.concat([df_training_all, df_training], axis=0)
+                    df_training_all = pd.concat(
+                        [df_training_all, df_training], axis=0)
                     # add the training and testing data to the total dataframe by row
                     df_testing = pd.concat([X_test, y_test], axis=1).sort_values(
                         by="DateTime"
                     )
-                    df_testing_all = pd.concat([df_testing_all, df_testing], axis=0)
+                    df_testing_all = pd.concat(
+                        [df_testing_all, df_testing], axis=0)
 
             df_training_all.dropna(inplace=True)
             df_testing_all.dropna(inplace=True)
@@ -367,7 +373,8 @@ class LoadDumpLightGBM:
             )
 
     def fit(self):
-        df_training = pd.read_csv(f"{self.work_dir}/{self.training_data_name}.csv")
+        df_training = pd.read_csv(
+            f"{self.work_dir}/{self.training_data_name}.csv")
 
         # split again to get data to validate against during iterations
         X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
@@ -444,11 +451,13 @@ class LoadDumpLightGBM:
         df_testing[f"proba_{dump_label}"] = pred_testing[:, 1]
         df_testing[f"proba_{load_label}"] = pred_testing[:, 2]
         df_testing["predicted_class"] = pred_class_testing
-        df_testing.to_csv(f"{self.work_dir}/pred_test.csv", sep=",", index=False)
+        df_testing.to_csv(f"{self.work_dir}/pred_test.csv",
+                          sep=",", index=False)
 
         ############ the same piece of info can be found in preds/probabilities #############
         # store load and dump avg. probability
-        load_proba, dump_proba, driving_proba = get_avg_probabilities(df_testing)
+        load_proba, dump_proba, driving_proba = get_avg_probabilities(
+            df_testing)
         # save to file
         write_proba_score_test_data(load_proba, dump_proba, driving_proba)
 
@@ -528,11 +537,11 @@ class LoadDumpLightGBM:
 
 # %%
 
-
-myModel = LoadDumpLightGBM(nb_days=25)
-myModel.load_data()
-myModel.fit()
-myModel.predict()
-myModel.results()
-myModel.confusion_matrix()
+if __name__ == "__main__":
+    myModel = LoadDumpLightGBM(nb_days=5)
+    myModel.load_data()
+    myModel.fit()
+    myModel.predict()
+    myModel.results()
+    myModel.confusion_matrix()
 # %%
