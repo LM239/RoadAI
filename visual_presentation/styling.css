@@ -48,7 +48,7 @@ body {
 
 p {
   text-align: left;
-  width: 60%;
+  width: 100%;
 }
 
 iframe {
@@ -75,3 +75,17 @@ h3 {
   height: auto;
   display: block;
 }
+
+/* Center the container */
+.centered-textbox {
+  text-align: center; /* Center-align the container */
+  padding: 20px;
+  margin: 0 auto; /* Horizontally center the container */
+  width: 50%; /* Adjust the width as needed */
+}
+
+/* Left-align the text inside the container */
+.left-aligned-text {
+  text-align: left;
+}
+
