@@ -105,24 +105,61 @@
     </h3>
     <p class="left-aligned-text">
       Taking advantage of the avilable GPS data, mass quantities, and type of mass moved, we have developed a report
-      displaying the daily progress at the construction site. The report includes an interactive plot, idle time
-      statistics, and productivity information per machine per material type. The report is generated automatically
-      for a chosen day. In the interactive map, the user can select machine type, and the amount of clusters for dump
+      displaying the daily progress at the construction site. The report includes an interactive plot of mass moved,
+      idle time statistics, and productivity information per machine per material type. The report is generated
+      automatically for a chosen day.
+      <br>
+      <br>
+      The daily report is meant to serve as a proof of concept of what could be deployed to an analytics and interactive
+      visualization web application. The solution could be hosted at popular services, such as Tableau, Grafana or Power
+      BI. In this sense, it is not going to be an algorithm that directly proposes solutions, but rather enable insights
+      into how machines operates, both at an individual and group level. We look closer at two main components of the
+      daily report.
+    </p>
+    <h4 style="text-align: left;">Mass moved</h4>
+    <p>In the interactive map, the user can select machine type, and the amount of clusters for dump
       and load regions to display. Drone images from Skaret and Nordlandsdalen are overlayed in the map for better
       visuals on how the region changes over time as construction progresses. An aglomerate clustering and convex
       hull algorithm is used to plot polygons of load and dump regions. The ineractive plot informs on quantity moved
       between regions, the top workers of the day (tons/hr), and total mass moved for each material type.
-      The idle time statistics shows the amount of machines idle or active at different times of the day, and the
-      amount of machines waiting for a load or dump. For the times of the day when most machines are idle, the
-      position of idle machines are displayed on a map, showcasing common idle regions as a heatmap. The productivity
-      information shows the average amount of tonnes mass moved per hour for each machine ID. One plot for each
-      material type.
     </p>
-    <h4 style="text-align: left;">Idle time</h4>
-    <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
-    <iframe src="my_map.html" width="100%" height="600"></iframe>
-    <iframe src="heatmap_idle.html" width="100%" height="600"></iframe>
-    <h4 style="text-align: left;">Mass moved</h4>
+    <p style="color:red;">Øystein should write about this and add plots.</p>
+    <h4 style="text-align: left;">Idle time and productivity</h4>
+    <p>
+      Knowing when, where and why machines are idle throughout the day can be an important insight when considering
+      operational changes. THe daily report provides a timeline plot, as can be seen in Figure 3. The red line, named
+      Machines in action, illsutrates the amount of machines having started their day, i.e. has recorded their first
+      load of the day. The number of idle machines can be seen by looking at the blue line. This tracks all machines
+      standing still, including machines loading and dumping. Furthermore, one can filter on their status, i.e. are they
+      waiting to load or to dump? We see that the number of idle machines peaks around 09:30 and 13:30.
+    </p>
+
+    <figure>
+      <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
+      <figcaption>Figure 3: Plot of idle machine throughout the day.</figcaption>
+    </figure>
+    <p>
+      There might be many reasons for the machines to be idle. Some drivers might be on a break, others are attending
+      other duties or some might be waiting for an excavator. To provide more insight into this matter, we plot the
+      position of idle machines on peak times for the selected day. An example of this can be seen in Figure 4. The map
+      allows the user to zoom in on areas of interest. Machines waiting to load are marked by an excavator icon, while
+      machines waiting to dump are marked by an icon of a dumping truck.
+    </p>
+    <figure>
+      <iframe src="my_map.html" width="100%" height="450"></iframe>
+      <figcaption>Figure 4: Map of idle machines at a peak time.</figcaption>
+    </figure>
+    <p>
+      Finally, we present a heatmap of idle machines for a given day. Collecting all idle positions of all machines for
+      a given day, we get an impression of where we are most likely to find idle machines. The heatmap can be seen in
+      Figure 5. Combining the idle timeline, the peak idle time plot and the heatmap, one should be able to identify
+      potential bottlenecks and areas of reduced efficiency.
+    </p>
+    <figure>
+      <iframe src="heatmap_idle.html" width="100%" height="450"></iframe>
+      <figcaption>Figure 5: Heatmap of idle machines for a given day.</figcaption>
+    </figure>
+
 
   </div>
 </body>
