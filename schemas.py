@@ -18,7 +18,7 @@ class Position(BaseModel):
 
 class Trip(BaseModel):
     trip_id: str
-    load: Literal['Stone', 'Equipment', 'Soil', '4']
+    load: Literal["Stone", "Equipment", "Soil", "4"]
     quantity: float
     positions: list[Position]
     dump_latlon: tuple[float, float]
@@ -52,14 +52,16 @@ class Trip(BaseModel):
 
 
 class Machine(BaseModel):
-    machine_type: Literal['Truck', 'Dumper', 'Tippbil']
+    machine_type: Literal["Truck", "Dumper", "Tippbil"]
     machine_id: int | str  # If looking at 2023 data needs to be string
     machine_name: str | None
     trips: list[Trip]
 
     @computed_field
     @cached_property
-    def trips_dict(self) -> dict[Literal['Stone', 'Equipment', 'Soil', '4'], list[Trip]]:
+    def trips_dict(
+        self,
+    ) -> dict[Literal["Stone", "Equipment", "Soil", "4"], list[Trip]]:
         # Returns a dictionary of trips with key as the load type used
         partitions = defaultdict(lambda: [])
         set(partitions[trip.load].append(trip) for trip in self.trips)
@@ -82,7 +84,7 @@ class Machine(BaseModel):
     def total_quantity(self) -> float:
         # The combined quantity of each trip
         return sum(trip.quantity for trip in self.trips)
-    
+
     @computed_field
     @cached_property
     def all_positions(self) -> list[Position]:
@@ -93,29 +95,39 @@ class Machine(BaseModel):
     @computed_field
     @cached_property
     def all_loads(self) -> list[Position]:
-        temp_load : list[Position] = []
+        temp_load: list[Position] = []
         for trip in self.trips:
-            temp_load.append(Position(lat=trip.load_latlon[0],
-                                            lon=trip.load_latlon[1], 
-                                            uncertainty=0.0,
-                                            timestamp=trip.positions[0].timestamp))
+            temp_load.append(
+                Position(
+                    lat=trip.load_latlon[0],
+                    lon=trip.load_latlon[1],
+                    uncertainty=0.0,
+                    timestamp=trip.positions[0].timestamp,
+                )
+            )
         return temp_load
-    
+
     @computed_field
     @cached_property
     def all_dumps(self) -> list[Position]:
-        temp_dump : list[Position] = []
+        temp_dump: list[Position] = []
         for trip in self.trips:
-            temp_dump.append(Position(lat=trip.dump_latlon[0],
-                                            lon=trip.dump_latlon[1], 
-                                            uncertainty=0.0,
-                                            timestamp=trip.positions[0].timestamp))
+            for position in trip.positions:
+                if trip.dump_latlon == (position.lat, position.lon):
+                    temp_dump.append(
+                        Position(
+                            lat=trip.dump_latlon[0],
+                            lon=trip.dump_latlon[1],
+                            uncertainty=0.0,
+                            timestamp=position.timestamp,
+                        )
+                    )
         return temp_dump
-    
+
     @computed_field
     @cached_property
     def list_of_idle_times(self) -> list[list[Position]]:
-        list_of_idle_times : list[list[Position]] = []
+        list_of_idle_times: list[list[Position]] = []
         temp_idle_list: list[Position] = []
         # We start processing. Are going to iterate over all positions, from first to last
         for i in range(1, len(self.all_positions[1:])):
@@ -124,8 +136,7 @@ class Machine(BaseModel):
             current_time = current_pos.timestamp
 
             # Seconds passed since last timestamp
-            seconds_gone = (current_pos.timestamp -
-                            prev_pos.timestamp).total_seconds()
+            seconds_gone = (current_pos.timestamp - prev_pos.timestamp).total_seconds()
 
             if seconds_gone > 0:
                 # Meters driven since last timestamp
@@ -138,32 +149,31 @@ class Machine(BaseModel):
 
                 if speed_kmh < 5:  # Speed limit - can be changed as user want
                     temp_idle_list.append(
-                        Position(lat=current_pos.lat,
-                                lon=current_pos.lon,
-                                uncertainty=0,
-                                timestamp=current_time)
+                        Position(
+                            lat=current_pos.lat,
+                            lon=current_pos.lon,
+                            uncertainty=0,
+                            timestamp=current_time,
+                        )
                     )
-                    if (
-                        i == len(self.all_positions[1:]) - 1
-                    ):  # i.e. last iteration
+                    if i == len(self.all_positions[1:]) - 1:  # i.e. last iteration
                         list_of_idle_times.append(temp_idle_list)
                 else:
                     if len(temp_idle_list) > 0:
                         list_of_idle_times.append(temp_idle_list)
                         temp_idle_list = []  # Re-initialize
-        
+
         return list_of_idle_times
 
     @computed_field
     @cached_property
     def total_idle_seconds(self) -> float:
         return sum(
-                    [
-                        (item[-1].timestamp - item[0].timestamp).total_seconds()
-                        for item in self.list_of_idle_times
-                    ]
-                )
-
+            [
+                (item[-1].timestamp - item[0].timestamp).total_seconds()
+                for item in self.list_of_idle_times
+            ]
+        )
 
     @property
     def soil_trips(self):
@@ -175,8 +185,8 @@ class Machine(BaseModel):
 
     @property
     def stone_trips(self) -> list[Trip]:
-        return self.trips_dict['Stone']
+        return self.trips_dict["Stone"]
 
     @property
     def four_trips(self) -> list[Trip]:
-        return self.trips_dict['4']
+        return self.trips_dict["4"]
