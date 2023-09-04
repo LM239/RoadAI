@@ -12,7 +12,6 @@ opencv-python
 geopy
 plotly
 nbformat
-folium
 tqdm
 seaborn
 lightgbm==4.0.0
