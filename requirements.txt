@@ -15,3 +15,4 @@ nbformat
 tqdm
 seaborn
 lightgbm==4.0.0
+ipywidgets
