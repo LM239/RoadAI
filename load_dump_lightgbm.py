@@ -283,8 +283,7 @@ def write_proba_score_test_data(
     """
     Make sure probabilities are of order (load_proba, dump_proba)
     """
-    track_performance_file_path = Path(
-        "data/ml_model_data/preds/track_performance.txt")
+    track_performance_file_path = Path("data/ml_model_data/preds/track_performance.txt")
     track_performance_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(track_performance_file_path, "a") as f:
         f.write(
@@ -296,10 +295,16 @@ class LoadDumpLightGBM:
     def __init__(
         self,
         group_size: int = 5,
-        nb_days: int = 1,
+        nb_days: int | str = 1,
         starting_from: int = 0,
         work_dir: str = "data/ml_model_data/class_data",
+        gps_data_dir: str = "data/GPSData",
     ) -> None:
+        if nb_days > len(os.listdir(work_dir)):
+            raise ValueError(
+                f"The given parameter nb_days of {nb_days} cannot exceed the number of GPS data files of {len(os.listdir(gps_data_dir))}"
+            )
+
         print("Initializing class:")
         print("----------------------")
         print("Data over: ", nb_days, "days.")
@@ -309,6 +314,7 @@ class LoadDumpLightGBM:
         self.group_size = group_size
         self.starting_from = starting_from
         self.work_dir = work_dir
+        self.gps_data_dir = gps_data_dir
         self.training_data_name = "my_train_from_class"
         self.test_data_name = "my_test_from_class"
 
@@ -323,7 +329,8 @@ class LoadDumpLightGBM:
 
     def load_data(self):
         self.days = [
-            csv_file.split(".csv")[0] for csv_file in os.listdir("data/GPSData/trips")
+            csv_file.split(".csv")[0]
+            for csv_file in os.listdir(f"{self.gps_data_dir}/trips")
         ]
         print("Start at day ", self.days[self.starting_from])
         machine_type = "Truck"
@@ -369,7 +376,9 @@ class LoadDumpLightGBM:
 
             Path(self.work_dir).mkdir(parents=True, exist_ok=True)
             df_training_all.to_csv(
-                f"{self.work_dir}/{self.training_data_name}.csv", sep=",", index=False,
+                f"{self.work_dir}/{self.training_data_name}.csv",
+                sep=",",
+                index=False,
             )
             df_testing_all.to_csv(
                 f"{self.work_dir}/{self.test_data_name}.csv", sep=",", index=False
