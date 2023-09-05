@@ -1,5 +1,5 @@
 # %%
-import dataloader
+import helper_functions.dataloader as dataloader
 from pathlib import Path
 from pydantic import BaseModel
 from tqdm import tqdm
@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import os
 from sklearn.model_selection import train_test_split
-from schemas import Machine
+from helper_functions.schemas import Machine
 import geopy.distance
 import matplotlib.pyplot as plt
 import joblib
@@ -18,9 +18,7 @@ from lightgbm import early_stopping, record_evaluation, LGBMModel
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 from typing import Literal
-from schemas import Position
-
-# %%
+from helper_functions.schemas import Position
 
 
 class Stats(BaseModel):
