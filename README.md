@@ -19,3 +19,8 @@ Team Nodig's code for the RoadAI competition
 6) Run the command `jupyter notebook --allow-root`
 7) Click on link to open jupyter notebook in the browser
 8) Visit and run notebooks
+
+# Notebooks
+
+- [Automated load and dump detection with LightGBM](load_dump_lightgbm_demo.ipynb)
+- [Daily report](daily_report_demo.ipynb)
