@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import date
 from schemas import Machine, Trip, Position
 import numpy as np
-from utils import load_csv_from_date
+from utils import load_gps_data
 from typing import Literal
 
 
@@ -11,10 +11,13 @@ class TripsLoader:
         Loads trips for one day
     """
 
-    def __init__(self, datestring: str) -> None:
+    def __init__(
+        self, datestring: str, gps_data_dir: str = "data/GPSData"
+    ) -> None:
         self._machines: dict[int, Machine] = {}
         self.day: str = datestring
-        info_df, trip_df = load_csv_from_date(f'{datestring}.csv')
+        info_df, trip_df = load_gps_data(
+            f'{datestring}.csv', gps_data_dir)
 
         grouped_df = trip_df.groupby("TripLogId")
         unique = set(trip_df["TripLogId"].unique())
@@ -62,7 +65,7 @@ class TripsLoader:
                         positions=positions,
                     )
                     trips.append(trip)
-                except:
+                except Exception:
                     print("Could not add row, row was type: ", type(
                         row["route"]), " but expected ndarray.")
 

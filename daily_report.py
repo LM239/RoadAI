@@ -16,6 +16,7 @@ class DailyReport:
     Args
     ------
     day: String specyfing day we want to look at, in format MM-DD-YYYY
+    gps_data_dir: Directory path for gps data
 
     Attributes
     ----------
@@ -46,10 +47,10 @@ class DailyReport:
         Time plot of where machine was idle, similar to prediction_time_plot
     """
 
-    def __init__(self, day: str) -> None:
+    def __init__(self, day: str, gps_data_dir="data/GPSData") -> None:
 
         # Loading gps data for selected day
-        self.trips = dataloader.TripsLoader(day)
+        self.trips = dataloader.TripsLoader(day, gps_data_dir)
 
         self.productivity = {}
 

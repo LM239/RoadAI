@@ -12,16 +12,18 @@ MACHINE_NAMES = ['Volvo A45 (4060) 12324060', 'A45 FS (3834) 12323834',
                  'Scania R540 AJ94080', 'Scania R 580 (PD 69849)', 'PD 69848']
 
 
-def load_csv_from_date(file_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def load_gps_data(date: str, gps_data_directory: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    File_name is a string on the formate 'YYYY-MM-DD'
-    Loads the info and trip csv file for teh given date.
+    Loads the trip and trip info csv file for the given date.
+
+    date is a string on the format 'YYYY-MM-DD'
     Timestamp columns are transofmred to datetimes, MachineNumber and MachineName are combined as MachineID
     """
-    trip_df = pd.read_csv(f'data/GPSData/trips/' +
-                          file_name, index_col=None, header=0)
-    info_df = pd.read_csv(f'data/GPSData/tripsInfo/' +
-                          file_name, index_col=None, header=0)
+    trip_csv_path = Path(gps_data_directory) / "trips" / date
+    info_csv_path = Path(gps_data_directory) / "tripsInfo" / date
+
+    trip_df = pd.read_csv(trip_csv_path, index_col=None, header=0)
+    info_df = pd.read_csv(info_csv_path, index_col=None, header=0)
 
     time_stamp_format1 = pd.to_datetime(trip_df["Timestamp"], errors="coerce")
     mask = time_stamp_format1.isna()
