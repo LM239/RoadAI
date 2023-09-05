@@ -1,5 +1,5 @@
 pandas
-ipykernel
+notebook
 numpy
 scikit-learn
 matplotlib
