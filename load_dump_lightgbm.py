@@ -287,8 +287,10 @@ def write_proba_score_test_data(
     """
     Make sure probabilities are of order (load_proba, dump_proba)
     """
-
-    with open("data/ml_model_data/preds/track_performance.txt", "a") as f:
+    track_performance_file_path = Path(
+        "data/ml_model_data/preds/track_performance.txt")
+    track_performance_file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(track_performance_file_path, "a") as f:
         f.write(
             f"------------------\nLoad avg. proba: {load_proba}\nDump avg. proba {dump_proba}...\nDriving proba: {driving_proba}\n\n\n"
         )
