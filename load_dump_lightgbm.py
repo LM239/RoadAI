@@ -97,7 +97,7 @@ class PrepareMachineData:
                     meters_since_last_activity = 0
                     time_since_last_activity = 0
 
-    def get_df_with_ml_data(self):
+    def get_df_with_ml_data(self, group_size):
         load_times = [load.timestamp for load in self.machine.all_loads]
         dump_times = [dump.timestamp for dump in self.machine.all_dumps]
         load_times_set = set(load_times)
@@ -179,7 +179,7 @@ class PrepareMachineData:
         df = df.loc[:last_row]
 
         # Here we could try to merge 5 and 5 points - example
-        group_size = 5
+        # group_size = 5
         result_df = pd.DataFrame()
 
         for i in range(group_size):
@@ -296,14 +296,19 @@ def write_proba_score_test_data(
 class LoadDumpLightGBM:
     def __init__(
         self,
+        group_size: int = 5,
         nb_days: int = 1,
         starting_from: int = 0,
-        merge_timestamps: int = 5,
         work_dir: str = "data/ml_model_data/class_data",
     ) -> None:
+        print("Initializing class:")
+        print("----------------------")
+        print("Data over: ", nb_days, "days.")
+        print("Merging ", group_size, " consecutive timestamps")
+        print("All data saved to ", work_dir)
         self.nb_days = nb_days
+        self.group_size = group_size
         self.starting_from = starting_from
-        self.merge_timestamps = merge_timestamps  # Må sendes videre til group size
         self.work_dir = work_dir
         self.training_data_name = "my_train_from_class"
         self.test_data_name = "my_test_from_class"
@@ -321,7 +326,10 @@ class LoadDumpLightGBM:
         self.days = [
             csv_file.split(".csv")[0] for csv_file in os.listdir("data/GPSData/trips")
         ]
+        print("Start at day ",
+              self.days[self.starting_from])
         machine_type = "Truck"
+        print("For machine type: ", machine_type)
 
         df_training_all = pd.DataFrame()
         df_testing_all = pd.DataFrame()
@@ -335,7 +343,8 @@ class LoadDumpLightGBM:
                     # machine_of_interest = trip._machines[unique_vehicle]
                     automated_for_given_machine = PrepareMachineData(machine)
                     automated_for_given_machine.get_data()
-                    df_vehicle = automated_for_given_machine.get_df_with_ml_data()
+                    df_vehicle = automated_for_given_machine.get_df_with_ml_data(
+                        self.group_size)
 
                     X, y = (
                         df_vehicle.drop(["output_labels"], axis=1),
@@ -349,9 +358,6 @@ class LoadDumpLightGBM:
                     df_training = pd.concat([X_train, y_train], axis=1).sort_values(
                         by="DateTime"
                     )
-                    # grouped = df_training.groupby(df_training.index //3)
-                    # df_training.drop("DateTime")
-                    # df_training.insert(1,"DateTime start": d)
 
                     df_training_all = pd.concat(
                         [df_training_all, df_training], axis=0)
@@ -538,7 +544,7 @@ class LoadDumpLightGBM:
 # %%
 
 if __name__ == "__main__":
-    myModel = LoadDumpLightGBM(nb_days=5)
+    myModel = LoadDumpLightGBM(nb_days=30, group_size=10)
     myModel.load_data()
     myModel.fit()
     myModel.predict()
