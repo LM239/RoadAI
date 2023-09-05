@@ -1,7 +1,7 @@
 # %%
 import matplotlib.pyplot as plt
-from dataloader import TripsLoader
-from schemas import Machine, Trip
+from helper_functions.dataloader import TripsLoader
+from helper_functions.schemas import Machine, Trip
 from typing import Iterable, Literal
 import numpy as np
 import geopy.distance
