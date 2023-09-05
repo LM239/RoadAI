@@ -1,4 +1,4 @@
-import dataloader
+import helper_functions.dataloader as dataloader
 from typing import Literal
 from tqdm import tqdm
 from datetime import timedelta
@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import ipyleaflet as L
 import numpy as np
-from interactive_map import InteractiveMap
+from helper_functions.interactive_map import InteractiveMap
 
 
 class DailyReport:
