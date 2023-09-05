@@ -25,9 +25,18 @@
         .container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            max-width: 45%;
+            margin: 0 auto;
+        }
+
+        .container2 {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
             gap: 20px;
             padding: 20px;
-            max-width: 60%;
+            max-width: 25%;
             margin: 0 auto;
         }
 
@@ -37,7 +46,7 @@
         }
 
         .member img {
-            max-width: 60%;
+            max-width: 50%;
             border-radius: 50%;
         }
     </style>
@@ -48,25 +57,41 @@
         <h1>About the team</h1>
     </header>
     <p style="text-align: center; margin: 0 auto;">Team NoDig is made up by four members, all working with Machine
-        Learning at
-        Norconsult Digital.</p>
+        Learning at Norconsult Digital.
+    </p>
     <p style="text-align: center; margin: 0 auto;">Contact: lars.martin.hodne@norconsult.com</p>
     <div class="container">
         <div class="member">
-            <img src="placeholder_lm.jpg" alt="Lars Martin Hodne">
-            <h2>Lars Martin Hodne</h2>
+            <a href="https://www.linkedin.com/in/larsmartin-hodne/">
+                <img src="hodne.jpg" alt="Lars Martin Hodne">
+                <h2>Lars Martin Hodne</h2>
+            </a>
         </div>
         <div class="member">
-            <img src="placeholder_om.jpg" alt="Ole-Magnus Høiback">
-            <h2>Ole-Magnus Høiback</h2>
+            <a href="https://www.linkedin.com/in/olemagnushoiback/">
+                <img src="hoiback.jpg" alt="Ole-Magnus Høiback">
+                <h2>Ole-Magnus Høiback</h2>
+            </a>
         </div>
         <div class="member">
-            <img src="placeholder_mats.jpg" alt="Mats Stensrud Skui">
-            <h2>Mats Stensrud Skui</h2>
+            <a href="https://www.linkedin.com/in/https://www.linkedin.com/in/mats-stensrud-skui-918a9a225//">
+                <img src="skui.jpg" alt="Mats Stensrud Skui">
+                <h2>Mats Stensrud Skui</h2>
+            </a>
         </div>
         <div class="member">
-            <img src="placeholder_oystein.jpg" alt="Øystein Stavnes Sletta">
-            <h2>Øystein Stavnes Sletta</h2>
+            <a href="https://www.linkedin.com/in/oystein-sletta/">
+                <img src="sletta.jpg" alt="Øystein Stavnes Sletta">
+                <h2>Øystein Stavnes Sletta</h2>
+            </a>
+        </div>
+    </div>
+    <div class="container2">
+        <div class="member">
+            <a href="https://www.linkedin.com/in/a-thyholt-henriksen/">
+                <img src="thyholt.jpg" alt="Andreas Thyholt Henriksen">
+                <h2>Andreas Thyholt Henriksen</h2>
+            </a>
         </div>
     </div>
 </body>
