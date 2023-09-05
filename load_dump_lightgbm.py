@@ -340,7 +340,6 @@ class LoadDumpLightGBM:
             trip = dataloader.TripsLoader(day)
             for machine_id, machine in trip._machines.items():
                 if machine.machine_type == machine_type:
-                    # machine_of_interest = trip._machines[unique_vehicle]
                     automated_for_given_machine = PrepareMachineData(machine)
                     automated_for_given_machine.get_data()
                     df_vehicle = automated_for_given_machine.get_df_with_ml_data(
