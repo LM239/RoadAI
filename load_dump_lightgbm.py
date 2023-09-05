@@ -64,10 +64,10 @@ class PrepareMachineData:
 
     Methods
     -------
-    get_data()
-        Gathers and calculates various statistics based on the machine's data, like acceleration, speed, and coordinates.
+    get_speed_and_acceleration()
+        Calculates speed and acceleration for every possible position using a forward derivative scheme
 
-    get_df_with_ml_data(group_size: int)
+    construct_df_for_training(group_size: int)
         Generates a DataFrame with machine learning features and labels, grouped by the specified size.
     """
 
@@ -75,13 +75,7 @@ class PrepareMachineData:
         self.machine = machine_data
         self.stats = Stats()
 
-    def calculate_distance_and_time(self, pos1: Position, pos2: Position):
-        # Calculate distance and time between two positions
-        distance = geopy.distance.geodesic((pos1.lat, pos1.lon), (pos2.lat, pos2.lon)).m
-        time = (pos2.timestamp - pos1.timestamp).total_seconds()
-        return distance, time
-
-    def get_data(self):
+    def get_speed_and_acceleration(self) -> None:
         self.stats.day_times = [point.timestamp for point in self.machine.all_positions]
 
         # get statistics for all positions
@@ -91,10 +85,10 @@ class PrepareMachineData:
             prev_pos = self.machine.all_positions[i - 1]
 
             # Meters driven since last timestamp
-            meters_driven_cur_prev, time_cur_prev = self.calculate_distance_and_time(
+            meters_driven_cur_prev, time_cur_prev = calculate_distance_and_time(
                 current_pos, prev_pos
             )
-            meters_driven_next_cur, time_next_cur = self.calculate_distance_and_time(
+            meters_driven_next_cur, time_next_cur = calculate_distance_and_time(
                 next_pos, current_pos
             )
             # add speed and accelerations
@@ -112,32 +106,21 @@ class PrepareMachineData:
             self.stats.day_acceleration.append(acceleration_i_minus_1)
             self.stats.day_speeds.append(speed_ms_i_minus_1)
 
-    def get_df_with_ml_data(self, group_size):
+    def construct_df_for_training(self, group_size) -> pd.DataFrame:
         load_times = [load.timestamp for load in self.machine.all_loads]
         dump_times = [dump.timestamp for dump in self.machine.all_dumps]
-        load_times_set = set(load_times)
-        dump_times_set = set(dump_times)
+        uncertainty = [point.uncertainty for point in self.machine.all_positions]
         latitude = [point.lat for point in self.machine.all_positions]
         longitude = [point.lon for point in self.machine.all_positions]
-        uncertainty = [point.uncertainty for point in self.machine.all_positions]
         lat1_minus_lat0 = [
             latitude[i] - latitude[i - 1] for i in range(1, len(latitude))
         ]
         lon1_minus_lon0 = [
             longitude[i] - longitude[i - 1] for i in range(1, len(longitude))
         ]
-
-        # Add values to compensate for the different lengths
-        lat1_minus_lat0.append(lat1_minus_lat0[-1])
-        lon1_minus_lon0.append(lon1_minus_lon0[-1])
         speed_north_south = np.zeros_like(np.array(latitude))
         speed_east_west = np.zeros_like(np.array(latitude))
 
-        # add some speed to the day_speeds list, as we we dont have the speed of the last data point ( see for loop)
-        # we have to add a value as the speed in the last point is not defined as it uses forward derivative
-        for _ in range(2):
-            self.stats.day_speeds.append(np.nan)
-            self.stats.day_acceleration.append(np.nan)
         for idx in range(1, len(latitude) - 1):
             try:
                 total_seconds = (
@@ -153,14 +136,7 @@ class PrepareMachineData:
                 speed_east_west[idx - 1] = np.nan
                 speed_north_south[idx - 1] = np.nan
 
-        # add another day time as the for loop excludes the last value
-        # this value will be removed anyways
-        # self.stats.day_times.append(self.stats.day_times[-1])
-        load = [time in load_times_set for time in self.stats.day_times]
-        dump = [time in dump_times_set for time in self.stats.day_times]
-        # return True if either dump or load is True
-        output_labels = [d or l for d, l in zip(dump, load)]
-
+        output_labels = np.zeros_like(self.stats.day_times)
         for i in range(len(output_labels)):
             current_time = self.stats.day_times[i]  # The current timestamp
             if current_time in load_times:
@@ -170,6 +146,13 @@ class PrepareMachineData:
             else:
                 output_labels[i] = "Driving"
 
+        # Add values to compensate for the different lengths
+        for _ in range(2):
+            self.stats.day_speeds.append(np.nan)
+            self.stats.day_acceleration.append(np.nan)
+        lat1_minus_lat0.append(lat1_minus_lat0[-1])
+        lon1_minus_lon0.append(lon1_minus_lon0[-1])
+        # construct the df
         df = pd.DataFrame(
             {
                 "MachineID": [self.machine.machine_id] * len(self.stats.day_times),
@@ -189,13 +172,12 @@ class PrepareMachineData:
 
         # filter df to remove the rows after the last dump
         last_row = df.query('output_labels == "Dump"').index[-1]
-
         df = df.loc[:last_row]
 
-        # Here we could try to merge 5 and 5 points - example
-        # group_size = 5
+        # Merge 'group_size' data points into one. Start making an empty DataFrame
         result_df = pd.DataFrame()
 
+        # Transform original DataFrame (df) into a new DataFrame (result_df) with additional features
         for i in range(group_size):
             sub_df = df.iloc[i::group_size]
             sub_df = sub_df.reset_index(drop=True)
@@ -228,14 +210,40 @@ class PrepareMachineData:
             if i != 0:
                 result_df = result_df.drop(f"DateTime_{i}", axis=1)
                 result_df = result_df.drop(f"MachineID_{i}", axis=1)
-        return result_df  # df
+        return result_df
+
+
+def calculate_distance_and_time(
+    cur_pos: Position, prev_pos: Position
+) -> tuple[float, float]:
+    """
+    The function calculates the distance and time between two positions.
+
+    :param cur_pos: The current position, represented as a `Position` object
+    :type cur_pos: Position
+    :param prev_pos: The `prev_pos` parameter represents the previous position, which includes the
+    latitude, longitude, and timestamp of the previous location
+    :type prev_pos: Position
+    :return: the distance (m) and time (s) between two positions.
+    """
+    distance = geopy.distance.geodesic(
+        (cur_pos.lat, cur_pos.lon), (prev_pos.lat, prev_pos.lon)
+    ).m
+    time = (cur_pos.timestamp - prev_pos.timestamp).total_seconds()
+    return distance, time
 
 
 def load_training_csv_files(
     name_of_data_set: str,
 ) -> pd.DataFrame:
     """
-    Loads available training data
+    The function `load_training_csv_files` loads a CSV file as a pandas DataFrame from a specified
+    directory.
+
+    :param name_of_data_set: The parameter `name_of_data_set` is a string that represents the name of
+    the CSV file that you want to load as a training dataset
+    :type name_of_data_set: str
+    :return: a pandas DataFrame.
     """
     return pd.read_csv(
         f"data/ml_model_data/training_data/{name_of_data_set}", delimiter=","
@@ -246,7 +254,17 @@ def split_data_into_training_and_validation(
     df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Splits data into training and testing(unseen data)
+    The function `split_data_into_training_and_validation` divides the given DataFrame into feature and label
+    DataFrames, and further splits those into training and testing sets.
+
+    :param df: The input DataFrame containing the features and labels.
+    :type df: pd.DataFrame
+
+    :return: A tuple containing four DataFrames: X_train, X_test, y_train, y_test.
+    - X_train: Features for the training set
+    - X_test: Features for the testing set
+    - y_train: Labels corresponding to X_train
+    - y_test: Labels corresponding to X_test
     """
     X, y = (
         df.drop(["MachineID", "output_labels", "DateTime"], axis=1),
@@ -265,6 +283,24 @@ def plot_learning_curve(
     ax,
     dataset: str,
 ) -> None:
+    """
+    The function `plot_learning_curve` plots the learning curve using LightGBM's built-in plotting
+    functionality for the specified metric and dataset.
+
+    :param booster: The trained LightGBM model or dictionary containing information about the booster.
+    :type booster: dict or LGBMModel
+
+    :param metric: The metric name to plot. Could be `None`, in which case it will use the first metric it finds.
+    :type metric: str or None
+
+    :param ax: The matplotlib axis object on which to plot the learning curve.
+    :type ax: matplotlib axis object
+
+    :param dataset: The dataset for which to plot the learning curve (e.g., "Train", "Validation").
+    :type dataset: str
+
+    :return: None. The function directly plots the learning curve on the provided axis object.
+    """
     lgbm.plot_metric(
         booster=booster,
         metric=metric,
@@ -276,15 +312,24 @@ def plot_learning_curve(
 
 
 def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
+    """
+    The function `get_avg_probabilities` calculates the average probabilities for the "Load", "Dump",
+    and "Driving" labels in a given DataFrame.
+
+    :param df_pred: The parameter `df_pred` is a pandas DataFrame that contains the predictions made by
+    a model. It should have the following columns:
+    :type df_pred: pd.DataFrame
+    :return: a tuple of three floats representing the average probabilities for the "Load", "Dump", and
+    "Driving" labels in the given DataFrame.
+    """
     # filter to return only rows where we have loads and dumps
     true_loads_rows = df_pred.loc[df_pred["output_labels"] == "Load", "proba_Load"]
     true_dumps_rows = df_pred.loc[df_pred["output_labels"] == "Dump", "proba_Dump"]
     true_driving_rows = df_pred.loc[
         df_pred["output_labels"] == "Driving", "proba_Driving"
     ]
-    # the length of both true_loads and true_dumps corresponds to the sum
 
-    # we calculate the average probability
+    # Calculate average probabilties
     load_proba = true_loads_rows.sum() / len(true_loads_rows)
     dump_proba = true_dumps_rows.sum() / len(true_dumps_rows)
     driving_proba = true_driving_rows.sum() / len(true_driving_rows)
@@ -292,18 +337,31 @@ def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
     return (load_proba, dump_proba, driving_proba)
 
 
-def write_proba_score_test_data(
-    load_proba: float, dump_proba: float, driving_proba: float
-) -> None:
-    """
-    Make sure probabilities are of order (load_proba, dump_proba)
-    """
-    track_performance_file_path = Path("data/ml_model_data/preds/track_performance.txt")
-    track_performance_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(track_performance_file_path, "a") as f:
-        f.write(
-            f"------------------\nLoad avg. proba: {load_proba}\nDump avg. proba {dump_proba}...\nDriving proba: {driving_proba}\n\n\n"
-        )
+# def write_proba_score_test_data(
+#     load_proba: float, dump_proba: float, driving_proba: float
+# ) -> None:
+#     """
+#     The function `write_proba_score_test_data` appends the average probabilities of three
+#     classes ('Load', 'Dump', 'Driving') to a text file.
+
+#     :param load_proba: The average probability score for the 'Load' class.
+#     :type load_proba: float
+
+#     :param dump_proba: The average probability score for the 'Dump' class.
+#     :type dump_proba: float
+
+#     :param driving_proba: The average probability score for the 'Driving' class.
+#     :type driving_proba: float
+
+#     :return: None. The function writes the average probabilities to a text file.
+#     """
+#     track_performance_file_path = Path("data/ml_model_data/preds/track_performance.txt")
+#     track_performance_file_path.parent.mkdir(parents=True, exist_ok=True)
+#     with open(track_performance_file_path, "a") as f:
+#         f.write(
+#             f"------------------\nLoad avg. proba: {load_proba}\nDump avg. proba {dump_proba}...\nDriving proba: {driving_proba}\n\n\n"
+#         )
+#         f.flush()
 
 
 class LoadDumpLightGBM:
@@ -336,7 +394,9 @@ class LoadDumpLightGBM:
         self.nb_days = (
             nb_days
             if isinstance(nb_days, int)
-            else len(os.listdir(gps_data_dir + "/trips"))
+            else len(
+                os.listdir(gps_data_dir + "/trips")
+            )  # 'else' is executed if nb_days is a valid string ('all')
         )
         self.group_size = group_size
         self.starting_from = starting_from
@@ -373,8 +433,8 @@ class LoadDumpLightGBM:
             for machine_id, machine in trip._machines.items():
                 if machine.machine_type == machine_type:
                     automated_for_given_machine = PrepareMachineData(machine)
-                    automated_for_given_machine.get_data()
-                    df_vehicle = automated_for_given_machine.get_df_with_ml_data(
+                    automated_for_given_machine.get_speed_and_acceleration()
+                    df_vehicle = automated_for_given_machine.construct_df_for_training(
                         self.group_size
                     )
 
@@ -392,7 +452,6 @@ class LoadDumpLightGBM:
                     )
 
                     df_training_all = pd.concat([df_training_all, df_training], axis=0)
-                    # add the training and testing data to the total dataframe by row
                     df_testing = pd.concat([X_test, y_test], axis=1).sort_values(
                         by="DateTime"
                     )
@@ -413,18 +472,14 @@ class LoadDumpLightGBM:
                 index=False,
             )
 
-    def fit(self):
+    def fit(self, stopping_rounds: int = 2):
         df_training = pd.read_csv(
             f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv"
         )
 
-        # split again to get data to validate against during iterations
         X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
             df_training
         )
-        # predict both load and dump and save the models
-        fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
-        ax_lc.set_yscale("log")
 
         booster_record_eval = {}
         model = lgbm.LGBMClassifier(
@@ -443,65 +498,65 @@ class LoadDumpLightGBM:
             eval_metric=self.LightGBMParams["metric"],
             eval_names=["Train", "Val"],
             callbacks=[
-                early_stopping(stopping_rounds=2),
+                early_stopping(stopping_rounds=stopping_rounds),
                 record_evaluation(booster_record_eval),
             ],
         )
-
+        # Save learning curve as png
+        fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
+        ax_lc.set_yscale("log")
         plot_learning_curve(
             booster=booster_record_eval,
             metric=self.LightGBMParams["metric"],
             ax=ax_lc,
-            dataset=self.training_data_name,
+            dataset=f"{self.training_data_name}_{self.nb_days}_days",
         )
         fig_lc.tight_layout()
         fig_lc.savefig(f"{self.work_dir}/learning_curve.png")
+        plt.close(fig_lc)
 
-        # plot feature importances
-        fig_fi = lgbm.plot_importance(model).figure
+        # Save feature importances as png
+        fig_fi = lgbm.plot_importance(model, figsize=(15, 10)).figure
         fig_fi.tight_layout()
         fig_fi.savefig(f"{self.work_dir}/feature_importance.png")
+        plt.close(fig_fi)
 
-        # save training time, val_error at termination
+        # Save training time and validaton data error at termination
         with open(f"{self.work_dir}/track_performance.txt", "a") as f:
             f.write(
-                f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}.\nValidation multi logloss: {booster_record_eval['Val']['multi_logloss'][-1]}\n"
+                f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}_{self.nb_days}_days.\nValidation multi logloss: {booster_record_eval['Val']['multi_logloss'][-1]}\n"
             )
+            f.flush()
 
-        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}.bin")
+        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
 
     def predict(self):
-        """
-        Load model and predict on unseen data
-        """
         df_testing = pd.read_csv(
             f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv"
         )
 
-        loaded_model = joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}.bin")
+        loaded_model = joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
 
         # this is the order of the output matrix
         driving_label, dump_label, load_label = loaded_model.classes_
 
-        # pred_training = loaded_model.predict_proba(X_train)
-        pred_testing: np.ndarray = loaded_model.predict_proba(
+        pred_testing_proba: np.ndarray = loaded_model.predict_proba(
             df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
         )
-        pred_class_testing: np.ndarray = loaded_model.predict(
+        pred_testing_label: np.ndarray = loaded_model.predict(
             df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
         )
 
-        df_testing[f"proba_{driving_label}"] = pred_testing[:, 0]
-        df_testing[f"proba_{dump_label}"] = pred_testing[:, 1]
-        df_testing[f"proba_{load_label}"] = pred_testing[:, 2]
-        df_testing["predicted_class"] = pred_class_testing
+        df_testing[f"proba_{driving_label}"] = pred_testing_proba[:, 0]
+        df_testing[f"proba_{dump_label}"] = pred_testing_proba[:, 1]
+        df_testing[f"proba_{load_label}"] = pred_testing_proba[:, 2]
+        df_testing["predicted_class"] = pred_testing_label
         df_testing.to_csv(f"{self.work_dir}/pred_test.csv", sep=",", index=False)
 
-        ############ the same piece of info can be found in preds/probabilities #############
-        # store load and dump avg. probability
-        load_proba, dump_proba, driving_proba = get_avg_probabilities(df_testing)
-        # save to file
-        write_proba_score_test_data(load_proba, dump_proba, driving_proba)
+        # # store load and dump avg. probability
+        # load_proba, dump_proba, driving_proba = get_avg_probabilities(df_testing)
+        # # save to file
+        # write_proba_score_test_data(load_proba, dump_proba, driving_proba)
 
     def results(self):
         pred_dict = {}
@@ -529,7 +584,9 @@ class LoadDumpLightGBM:
                 "Probabilities": list(pred_dict.values()),
             }
         ).to_csv(
-            f"{self.work_dir}/probabilities{self.nb_days}.csv", index=False, sep=","
+            f"{self.work_dir}/probabilities_{self.nb_days}_days.csv",
+            index=False,
+            sep=",",
         )
 
         y_true = df_preds["output_labels"]
@@ -574,6 +631,47 @@ class LoadDumpLightGBM:
         plt.xlabel("Predicted Labels")
         plt.ylabel("True Labels")
         plt.title("Confusion Matrix")
+        plt.tight_layout()
+        plt.savefig(f"{self.work_dir}/confusion_matrix.png")
+        plt.show()
+
+    def confusion_matrix_with_probabilities(self):
+        df_preds = pd.read_csv(
+            f"{self.work_dir}/pred_test.csv",
+            sep=",",
+            usecols=[
+                "output_labels",
+                "predicted_class",
+                "proba_Driving",
+                "proba_Dump",
+                "proba_Load",
+            ],
+        )
+
+        labels = ["Driving", "Dump", "Load"]
+        avg_probs = np.zeros((len(labels), len(labels)))
+
+        for i, true_label in enumerate(labels):
+            for j, pred_label in enumerate(labels):
+                mask = df_preds["output_labels"] == true_label
+                avg_prob = df_preds.loc[mask, f"proba_{pred_label}"].mean()
+                avg_probs[i, j] = avg_prob
+
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(
+            avg_probs,
+            annot=True,
+            fmt=".2f",
+            cmap="Blues",
+            xticklabels=labels,
+            yticklabels=labels,
+        )
+
+        plt.xlabel("Predicted Labels")
+        plt.ylabel("True Labels")
+        plt.title("Average Predicted Probabilities")
+        plt.tight_layout()
+        plt.savefig(f"{self.work_dir}/average_predicted_probabilities.png")
         plt.show()
 
 
