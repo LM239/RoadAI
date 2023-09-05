@@ -311,30 +311,30 @@ def plot_learning_curve(
     )
 
 
-def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
-    """
-    The function `get_avg_probabilities` calculates the average probabilities for the "Load", "Dump",
-    and "Driving" labels in a given DataFrame.
+# def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
+#     """
+#     The function `get_avg_probabilities` calculates the average probabilities for the "Load", "Dump",
+#     and "Driving" labels in a given DataFrame.
 
-    :param df_pred: The parameter `df_pred` is a pandas DataFrame that contains the predictions made by
-    a model. It should have the following columns:
-    :type df_pred: pd.DataFrame
-    :return: a tuple of three floats representing the average probabilities for the "Load", "Dump", and
-    "Driving" labels in the given DataFrame.
-    """
-    # filter to return only rows where we have loads and dumps
-    true_loads_rows = df_pred.loc[df_pred["output_labels"] == "Load", "proba_Load"]
-    true_dumps_rows = df_pred.loc[df_pred["output_labels"] == "Dump", "proba_Dump"]
-    true_driving_rows = df_pred.loc[
-        df_pred["output_labels"] == "Driving", "proba_Driving"
-    ]
+#     :param df_pred: The parameter `df_pred` is a pandas DataFrame that contains the predictions made by
+#     a model. It should have the following columns:
+#     :type df_pred: pd.DataFrame
+#     :return: a tuple of three floats representing the average probabilities for the "Load", "Dump", and
+#     "Driving" labels in the given DataFrame.
+#     """
+#     # filter to return only rows where we have loads and dumps
+#     true_loads_rows = df_pred.loc[df_pred["output_labels"] == "Load", "proba_Load"]
+#     true_dumps_rows = df_pred.loc[df_pred["output_labels"] == "Dump", "proba_Dump"]
+#     true_driving_rows = df_pred.loc[
+#         df_pred["output_labels"] == "Driving", "proba_Driving"
+#     ]
 
-    # Calculate average probabilties
-    load_proba = true_loads_rows.sum() / len(true_loads_rows)
-    dump_proba = true_dumps_rows.sum() / len(true_dumps_rows)
-    driving_proba = true_driving_rows.sum() / len(true_driving_rows)
+#     # Calculate average probabilties
+#     load_proba = true_loads_rows.sum() / len(true_loads_rows)
+#     dump_proba = true_dumps_rows.sum() / len(true_dumps_rows)
+#     driving_proba = true_driving_rows.sum() / len(true_driving_rows)
 
-    return (load_proba, dump_proba, driving_proba)
+#     return (load_proba, dump_proba, driving_proba)
 
 
 # def write_proba_score_test_data(
