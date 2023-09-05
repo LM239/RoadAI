@@ -30,19 +30,6 @@ def column_name_df_preds(model_name: str) -> str:
     return "pred_" + model_name.split("_")[-1].split(".bin")[0]
 
 
-# def read_and_normalize_data(file_path: str) -> pd.DataFrame:
-#     pred_df = pd.read_csv(file_path, sep=",")
-#     for col in ["pred_Dump", "pred_Load"]:
-#         pred_df[col] = pred_df[col] / pred_df[col].max()
-#     return pred_df
-
-
-# def plot_data(ax, n_samples, data, label, marker, color, size, alpha=1.0) -> None:
-#     ax.scatter(
-#         n_samples, data, label=label, marker=marker, color=color, s=size, alpha=alpha
-#     )
-
-
 def save_pred_df(df: pd.DataFrame, data_set_string: str) -> None:
     df.to_csv(
         f"{FOLDER_NAME}/preds/preds_load_dump_{data_set_string}.csv",

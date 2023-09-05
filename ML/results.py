@@ -10,7 +10,7 @@ def convert_to_0_and_1s(df: pd.DataFrame, output_label: str):
     return fitered_df
 
 
-def get_probabilities(ndays) -> None:
+def get_probabilities(ndays: int, merged_timestamps: bool) -> None:
     """
     Calculates probabilities by using the complete test prediciton data set
 
@@ -45,7 +45,11 @@ def get_probabilities(ndays) -> None:
 
     pd.DataFrame(
         {"Condition": list(pred_dict.keys()), "Probabilities": list(pred_dict.values())}
-    ).to_csv(f"data/ml_model_data/preds/probabilities{ndays}.csv", index=False, sep=",")
+    ).to_csv(
+        f"data/ml_model_data/preds/probabilities{ndays}_merged_timestamps={merged_timestamps}.csv",
+        index=False,
+        sep=",",
+    )
 
 
 # def plot_subfigure(
@@ -55,6 +59,7 @@ def get_probabilities(ndays) -> None:
 
 
 def plot_visual_for_truck_on_single_day(
+    merged_timestamps: bool,
     machine_ids: list[str | int] = [1],
     datestrings: list[str] = ["2022-03-07", "2022-03-08"],
 ):
@@ -79,10 +84,16 @@ def plot_visual_for_truck_on_single_day(
 
             df_chosen_machine = df_preds[
                 (df_preds["MachineID"] == machine_id)
-                & (df_preds["DateTime"].str.startswith(datestring))
+                & (
+                    df_preds[
+                        "DateTime_min" if merged_timestamps else "DateTime"
+                    ].str.startswith(datestring)
+                )
             ]
 
-            time = pd.to_datetime(df_chosen_machine["DateTime"])
+            time = pd.to_datetime(
+                df_chosen_machine["DateTime_min" if merged_timestamps else "DateTime"]
+            )
 
             for label, label2, color, ax in zip(
                 ["Load", "Dump", "Driving"],
@@ -119,6 +130,6 @@ def plot_visual_for_truck_on_single_day(
 
 
 if __name__ == "__main__":
-    get_probabilities(1)
-    plot_visual_for_truck_on_single_day()
+    get_probabilities(1, merged_timestamps=False)
+    plot_visual_for_truck_on_single_day(merged_timestamps=False)
     pass

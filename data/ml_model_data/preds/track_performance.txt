@@ -108,3 +108,41 @@ Dump avg. proba 0.4598145941430035...
 Driving proba: 0.9947507580983207
 
 
+...
+Training time: 80.65174107799976 s
+Changes: ....
+Data set: train_20_merged_timestamps_training.csv.
+Validation multi logloss: 0.22726394237268704
+...
+Training time: 80.574682157001 s
+Changes: ....
+Data set: train_20_merged_timestamps_training.csv.
+Validation multi logloss: 0.22726518718703023
+------------------
+Load avg. proba: 0.8052157979446595
+Dump avg. proba 0.6693127158324533...
+Driving proba: 0.9655249156664734
+
+
+...
+Training time: 160.6552787189994 s
+Changes: ....
+Data set: train_20_merged_timestamps_training.csv.
+Validation multi logloss: 0.1460765159542791
+------------------
+Load avg. proba: 0.7464181689768515
+Dump avg. proba 0.5610684230837764...
+Driving proba: 0.9829092588002534
+
+
+...
+Training time: 212.03824964600062 s
+Changes: ....
+Data set: train_20_days_all_trucks_all_data.csv.
+Validation multi logloss: 0.05794004724819788
+------------------
+Load avg. proba: 0.8503632271207308
+Dump avg. proba 0.7020976789896571...
+Driving proba: 0.9781270014762429
+
+

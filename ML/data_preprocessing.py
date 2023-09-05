@@ -14,13 +14,29 @@ def load_training_csv_files(
 
 
 def split_data_into_training_and_validation(
+    merged_timestamps: bool,
     df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Splits data into training and testing(unseen data)
     """
+    labels_to_drop = [
+        [
+            "output_labels",
+            "MachineID",
+            "n_rows_merged",
+            "DateTime_min",
+            "DateTime_max",
+            "DateTime_mean",
+        ]
+        if merged_timestamps
+        else ["output_labels", "MachineID", "DateTime"]
+    ]
     X, y = (
-        df.drop(["MachineID", "output_labels", "DateTime"], axis=1),
+        df.drop(
+            labels_to_drop[0],
+            axis=1,
+        ),
         df["output_labels"],
     )
     # delete preds if they exist

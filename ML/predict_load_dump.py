@@ -21,7 +21,9 @@ import numpy as np
 
 
 def _train_lightgbm_and_plot_metric(
-    dataset: str = "train_1_days_all_trucks_multi_new_feat.csv", action: str = "..."
+    merged_timestamps,
+    dataset: str = "train_20_days_all_trucks_all_data.csv",
+    action: str = "...",
 ) -> None:
     """
     Train model on dataset of choice. To get a dataset, run automate_load_and_dump.ipynb
@@ -34,7 +36,7 @@ def _train_lightgbm_and_plot_metric(
 
     # split again to get data to validate against during iterations
     X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
-        df_training
+        merged_timestamps, df_training
     )
     # predict both load and dump and save the models
     fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
@@ -45,7 +47,7 @@ def _train_lightgbm_and_plot_metric(
     # val = lgbm.Dataset(X_val, y_val[target_column])
     booster_record_eval = {}
     model = lgbm.LGBMClassifier(
-        n_estimators=1000,
+        n_estimators=10000,
         class_weight={"Load": 2000, "Dump": 2000, "Driving": 1},
         verbose=-1,
     )
@@ -94,7 +96,7 @@ def _train_lightgbm_and_plot_metric(
 
 
 def _load_and_predict(
-    test_set: str = "test_1_days_all_trucks_multi_new_feat.csv",
+    merged_timestamps: bool, test_set: str = "test_20_days_all_trucks_all_data.csv"
 ) -> None:
     """
     Load model and predict on unseen data
@@ -105,10 +107,25 @@ def _load_and_predict(
 
     # this is the order of the output matrix
     driving_label, dump_label, load_label = loaded_model.classes_
+    labels_to_drop = [
+        [
+            "output_labels",
+            "MachineID",
+            "n_rows_merged",
+            "DateTime_min",
+            "DateTime_max",
+            "DateTime_mean",
+        ]
+        if merged_timestamps
+        else ["output_labels", "MachineID", "DateTime"]
+    ]
 
     # pred_training = loaded_model.predict_proba(X_train)
     pred_testing: np.ndarray = loaded_model.predict_proba(
-        df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
+        df_testing.drop(
+            labels_to_drop[0],
+            axis=1,
+        )
     )
 
     df_testing[f"proba_{driving_label}"] = pred_testing[:, 0]
@@ -124,5 +141,5 @@ def _load_and_predict(
 
 
 if __name__ == "__main__":
-    _train_lightgbm_and_plot_metric()
-    _load_and_predict()
+    _train_lightgbm_and_plot_metric(merged_timestamps=False)
+    _load_and_predict(merged_timestamps=False)

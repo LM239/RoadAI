@@ -1,9 +1,8 @@
 data/GPSData
 data/VibrationData
-data/ml_model_data/testing_data/test_10_days_all_trucks_multi_new_feat.csv
-data/ml_model_data/training_data/train_10_days_all_trucks_multi_new_feat.csv
+data/ml_model_data/training_data/**
+data/ml_model_data/testing_data/**
 data/ml_model_data/preds/preds_load_dump_testing.csv
-data/ml_model_data/preds/vehicle_1_03-07-2022.csv
 __pycache__/**
 .devcontainer/.zsh_history
 tmp/**
