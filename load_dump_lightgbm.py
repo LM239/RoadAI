@@ -1,5 +1,6 @@
 # %%
 import dataloader
+from pathlib import Path
 from pydantic import BaseModel
 from tqdm import tqdm
 from datetime import datetime
@@ -371,8 +372,9 @@ class LoadDumpLightGBM:
             df_training_all.dropna(inplace=True)
             df_testing_all.dropna(inplace=True)
 
+            Path(self.work_dir).mkdir(parents=True, exist_ok=True)
             df_training_all.to_csv(
-                f"{self.work_dir}/{self.training_data_name}.csv", sep=",", index=False
+                f"{self.work_dir}/{self.training_data_name}.csv", sep=",", index=False,
             )
             df_testing_all.to_csv(
                 f"{self.work_dir}/{self.test_data_name}.csv", sep=",", index=False
