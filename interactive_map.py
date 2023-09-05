@@ -7,7 +7,7 @@ from sklearn.cluster import AgglomerativeClustering
 from IPython.display import display
 import pickle as pkl
 from datetime import datetime
-
+import os
 
 # The `InteractiveMap` class is a Python class that represents an interactive map with overlays and
 # markers for dump and load regions, and provides functionality to update the map based on user input.
@@ -112,7 +112,7 @@ class InteractiveMap:
         file_to_bounds = {}
         with open(self.file_to_bounds_path, 'rb') as handle:
             file_to_bounds = pkl.load(handle)
-
+        
         input_date = datetime.strptime(self.day, '%m-%d-%Y')
 
         filenames_skaret = [e for e in file_to_bounds.keys() if e.split('_')[
@@ -131,12 +131,13 @@ class InteractiveMap:
         date_string_nordlandsdalen = 'P08_' + \
             nordlandsdalen_closest_date.strftime(
                 '%y%m%d') + '_Nordlandsdalen-Orthomosaic.png'
-
+        
+        path_host ='https://raw.githubusercontent.com/oyste/image_host/main/docs/assets/'
         # add skaret og nordlandsdalen overlay
         im_overlay_skaret = ImageOverlay(
-            url=f'public_data/png_folder/{date_string_skaret}', bounds=file_to_bounds[date_string_skaret])
+            url=path_host + date_string_skaret, bounds=file_to_bounds[date_string_skaret])
         im_overlay_nordlandsdalen = ImageOverlay(
-            url=f'public_data/png_folder/{date_string_nordlandsdalen}', bounds=file_to_bounds[date_string_nordlandsdalen])
+            url=path_host + date_string_nordlandsdalen, bounds=file_to_bounds[date_string_nordlandsdalen])
         self.m.add_layer(im_overlay_skaret)
         self.m.add_layer(im_overlay_nordlandsdalen)
 
