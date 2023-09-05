@@ -18,6 +18,7 @@ from lightgbm import early_stopping, record_evaluation, LGBMModel
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 from typing import Literal
+from schemas import Position
 
 # %%
 
@@ -76,65 +77,42 @@ class PrepareMachineData:
         self.machine = machine_data
         self.stats = Stats()
 
-    def get_data(self):
-        load_points = [(load.lat, load.lon) for load in self.machine.all_loads]
-        dump_points = [(dump.lat, dump.lon) for dump in self.machine.all_dumps]
-        # We keep track of how many meters we have driven since last dump or load
-        meters_since_last_activity = 0
-        time_since_last_activity = 0
-        self.stats.day_times = [point.timestamp for point in self.machine.all_positions]
-        # speed is added in the loop
+    def calculate_distance_and_time(self, pos1: Position, pos2: Position):
+        # Calculate distance and time between two positions
+        distance = geopy.distance.geodesic((pos1.lat, pos1.lon), (pos2.lat, pos2.lon)).m
+        time = (pos2.timestamp - pos1.timestamp).total_seconds()
+        return distance, time
 
-        # We start predicting. Are going to iterate over all positions, from first to last
+    def get_data(self):
+        self.stats.day_times = [point.timestamp for point in self.machine.all_positions]
+
+        # get statistics for all positions
         for i in range(1, len(self.machine.all_positions) - 1):
             next_pos = self.machine.all_positions[i + 1]
             current_pos = self.machine.all_positions[i]
             prev_pos = self.machine.all_positions[i - 1]
 
             # Meters driven since last timestamp
-            meters_driven = geopy.distance.geodesic(
-                (current_pos.lat, current_pos.lon), (prev_pos.lat, prev_pos.lon)
-            ).m
-
-            meters_since_last_activity += meters_driven
-
-            seconds_gone_i_minus_1 = (
-                current_pos.timestamp - prev_pos.timestamp
-            ).total_seconds()
-            time_since_last_activity += seconds_gone_i_minus_1
-
-            seconds_gone_i = (
-                next_pos.timestamp - current_pos.timestamp
-            ).total_seconds()
-            meters_driven_i = geopy.distance.geodesic(
-                (next_pos.lat, next_pos.lon), (current_pos.lat, current_pos.lon)
-            ).m
-            # if time duplicates, use a speed equal NaN
+            meters_driven_cur_prev, time_cur_prev = self.calculate_distance_and_time(
+                current_pos, prev_pos
+            )
+            meters_driven_next_cur, time_next_cur = self.calculate_distance_and_time(
+                next_pos, current_pos
+            )
+            # add speed and accelerations
             try:
-                speed_ms_i_minus_1 = meters_driven / seconds_gone_i_minus_1  # m/s
-                speed_ms_i = meters_driven_i / seconds_gone_i  # m/s
-
-                # speed_kmh_i_minus_1 = speed_ms_i_minus_1*3.6  # km/h
-                # speed_kmh_i = (speed_ms_i)*3.6                # km/h
-                acceleration_i_minus_1 = (speed_ms_i - speed_ms_i_minus_1) / (
-                    seconds_gone_i_minus_1
-                )  # m/s^2
+                speed_ms_i_minus_1 = meters_driven_cur_prev / time_cur_prev
+                speed_ms_i = meters_driven_next_cur / time_next_cur
+                acceleration_i_minus_1 = (
+                    speed_ms_i - speed_ms_i_minus_1
+                ) / time_cur_prev
             except ZeroDivisionError:
-                # speed_kmh_i_minus_1 = np.nan
+                # rows (duplicates) containing NaN are removed prior to training
                 speed_ms_i_minus_1 = np.nan
                 acceleration_i_minus_1 = np.nan
 
-            self.stats.day_acceleration.append(acceleration_i_minus_1)  # m/s^2
-            self.stats.day_speeds.append(speed_ms_i_minus_1)  # m/s
-
-            # if we have either load or dump, distance and time from last activity is set to 0
-            for sublist in [load_points, dump_points]:
-                if (
-                    self.machine.all_positions[i].lat,
-                    self.machine.all_positions[i].lon,
-                ) in sublist:
-                    meters_since_last_activity = 0
-                    time_since_last_activity = 0
+            self.stats.day_acceleration.append(acceleration_i_minus_1)
+            self.stats.day_speeds.append(speed_ms_i_minus_1)
 
     def get_df_with_ml_data(self, group_size):
         load_times = [load.timestamp for load in self.machine.all_loads]
@@ -427,16 +405,20 @@ class LoadDumpLightGBM:
 
             Path(self.work_dir).mkdir(parents=True, exist_ok=True)
             df_training_all.to_csv(
-                f"{self.work_dir}/{self.training_data_name}.csv",
+                f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv",
                 sep=",",
                 index=False,
             )
             df_testing_all.to_csv(
-                f"{self.work_dir}/{self.test_data_name}.csv", sep=",", index=False
+                f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv",
+                sep=",",
+                index=False,
             )
 
     def fit(self):
-        df_training = pd.read_csv(f"{self.work_dir}/{self.training_data_name}.csv")
+        df_training = pd.read_csv(
+            f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv"
+        )
 
         # split again to get data to validate against during iterations
         X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
@@ -488,15 +470,17 @@ class LoadDumpLightGBM:
                 f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}.\nValidation multi logloss: {booster_record_eval['Val']['multi_logloss'][-1]}\n"
             )
 
-        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.days}.bin")
+        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}.bin")
 
     def predict(self):
         """
         Load model and predict on unseen data
         """
-        df_testing = pd.read_csv(f"{self.work_dir}/{self.test_data_name}.csv")
+        df_testing = pd.read_csv(
+            f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv"
+        )
 
-        loaded_model = joblib.load(f"{self.work_dir}/lgm_model_{self.days}.bin")
+        loaded_model = joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}.bin")
 
         # this is the order of the output matrix
         driving_label, dump_label, load_label = loaded_model.classes_
