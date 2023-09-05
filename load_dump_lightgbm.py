@@ -17,21 +17,64 @@ import time
 from lightgbm import early_stopping, record_evaluation, LGBMModel
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
+from typing import Literal
 
 # %%
 
 
-class stats(BaseModel):  # Represents actual data
-    day_speeds: list[float] = []  # Speeds
+class Stats(BaseModel):
+    """
+    A class used to represent statistics related to movement or travel over a day
+
+    ...
+
+    Attributes
+    ----------
+    day_speeds : list[float]
+        a list containing floating-point numbers representing speeds for a particular day (default empty list)
+
+    day_acceleration : list[float]
+        a list containing floating-point numbers representing acceleration values for a specific day (default empty list)
+
+    day_dists : list[float]
+        a list containing floating-point numbers representing distances traveled in a specific day (default empty list)
+
+    day_times : list[datetime]
+        a list containing datetime objects representing timestamps (default empty list)
+
+    """
+
+    day_speeds: list[float] = []
     day_acceleration: list[float] = []
-    day_dists: list[float] = []  # Distances between each recording
-    day_times: list[datetime] = []  # Timestamp for two above lists
+    day_dists: list[float] = []
+    day_times: list[datetime] = []
 
 
 class PrepareMachineData:
+    """
+    A class used to prepare machine data for machine learning analysis.
+
+    ...
+
+    Attributes
+    ----------
+    machine : Machine
+        the Machine object that contains all the machine-related data.
+    stats : Stats
+        the Stats object that will store various statistics calculated from the machine data.
+
+    Methods
+    -------
+    get_data()
+        Gathers and calculates various statistics based on the machine's data, like acceleration, speed, and coordinates.
+
+    get_df_with_ml_data(group_size: int)
+        Generates a DataFrame with machine learning features and labels, grouped by the specified size.
+    """
+
     def __init__(self, machine_data: Machine):
         self.machine = machine_data
-        self.stats = stats()
+        self.stats = Stats()
 
     def get_data(self):
         load_points = [(load.lat, load.lon) for load in self.machine.all_loads]
@@ -55,10 +98,6 @@ class PrepareMachineData:
 
             meters_since_last_activity += meters_driven
 
-            # Meters driven since last timestamp
-
-            # this is the speed at point i-1 (forward derivative)
-            # Seconds passed since last timestamp
             seconds_gone_i_minus_1 = (
                 current_pos.timestamp - prev_pos.timestamp
             ).total_seconds()
@@ -112,7 +151,7 @@ class PrepareMachineData:
             longitude[i] - longitude[i - 1] for i in range(1, len(longitude))
         ]
 
-        # append some value to be removed after df is constructed
+        # Add values to compensate for the different lengths
         lat1_minus_lat0.append(lat1_minus_lat0[-1])
         lon1_minus_lon0.append(lon1_minus_lon0[-1])
         speed_north_south = np.zeros_like(np.array(latitude))
@@ -295,14 +334,22 @@ class LoadDumpLightGBM:
     def __init__(
         self,
         group_size: int = 5,
-        nb_days: int | str = 1,
+        nb_days: int | Literal["all"] = 1,
         starting_from: int = 0,
         work_dir: str = "data/ml_model_data/class_data",
         gps_data_dir: str = "data/GPSData",
     ) -> None:
-        if nb_days > len(os.listdir(work_dir)):
+        if isinstance(nb_days, int):
+            if nb_days > len(os.listdir(gps_data_dir + "/trips")):
+                raise ValueError(
+                    f"The 'nb_days' parameter ({nb_days}) cannot be greater than the number of days ({len(os.listdir(gps_data_dir+'/trips'))})."
+                )
+        elif isinstance(nb_days, str):
+            if nb_days.lower() != "all":
+                raise ValueError("The string value for 'nb_days' must be 'all'.")
+        else:
             raise ValueError(
-                f"The given parameter nb_days of {nb_days} cannot exceed the number of GPS data files of {len(os.listdir(gps_data_dir))}"
+                "The 'nb_days' parameter must be an integer or the string 'all'."
             )
 
         print("Initializing class:")
@@ -310,7 +357,11 @@ class LoadDumpLightGBM:
         print("Data over: ", nb_days, "days.")
         print("Merging ", group_size, " consecutive timestamps")
         print("All data saved to ", work_dir)
-        self.nb_days = nb_days
+        self.nb_days = (
+            nb_days
+            if isinstance(nb_days, int)
+            else len(os.listdir(gps_data_dir + "/trips"))
+        )
         self.group_size = group_size
         self.starting_from = starting_from
         self.work_dir = work_dir
