@@ -1,5 +1,5 @@
 # %%
-import dataloader
+import helper_functions.dataloader as dataloader
 from pydantic import BaseModel
 import numpy as np
 import plotly.graph_objects as go
@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from sklearn.cluster import KMeans
 from tqdm import tqdm
 import pandas as pd
-from schemas import Position
+from helper_functions.schemas import Position
 import ipyleaflet as L
 
 

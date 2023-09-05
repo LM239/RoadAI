@@ -1,5 +1,5 @@
 # %%
-from dataloader import TripsLoader
+from helper_functions.dataloader import TripsLoader
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -11,7 +11,7 @@ from ipywidgets import Layout
 from datetime import timedelta
 from sklearn.cluster import KMeans
 from tqdm import tqdm
-from schemas import Trip
+from helper_functions.schemas import Trip
 
 
 class AutomatedDumpPoints:
