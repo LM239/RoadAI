@@ -369,9 +369,10 @@ class LoadDumpLightGBM:
         group_size: int = 5,
         nb_days: int | Literal["all"] = 1,
         starting_from: int = 0,
-        work_dir: str = "data/ml_model_data/class_data",
         gps_data_dir: str = "data/GPSData",
+        work_dir: str = "data/ml_model_data",
     ) -> None:
+        #  verify nb_days (type and length constrained)
         if isinstance(nb_days, int):
             if nb_days > len(os.listdir(gps_data_dir + "/trips")):
                 raise ValueError(
@@ -389,7 +390,7 @@ class LoadDumpLightGBM:
         print("----------------------")
         print("Data over: ", nb_days, "days.")
         print("Merging ", group_size, " consecutive timestamps")
-        print("All data saved to ", work_dir)
+        print("All data will be saved to the automatically created path: ", work_dir)
         self.nb_days = (
             nb_days
             if isinstance(nb_days, int)
@@ -400,12 +401,13 @@ class LoadDumpLightGBM:
         self.group_size = group_size
         self.starting_from = starting_from
         self.work_dir = work_dir
+        self.work_dir_day = f"{work_dir}/class_data_{self.nb_days}_days"
         self.gps_data_dir = gps_data_dir
         self.training_data_name = "my_train_from_class"
         self.test_data_name = "my_test_from_class"
         self.lgbm_custom_params = CustomLightgbmParams()
 
-    def load_data(self):
+    def load_data(self) -> None:
         self.days = [
             csv_file.split(".csv")[0]
             for csv_file in os.listdir(f"{self.gps_data_dir}/trips")
@@ -451,21 +453,21 @@ class LoadDumpLightGBM:
             df_training_all.dropna(inplace=True)
             df_testing_all.dropna(inplace=True)
 
-            Path(self.work_dir).mkdir(parents=True, exist_ok=True)
+            Path(self.work_dir_day).mkdir(parents=True, exist_ok=True)
             df_training_all.to_csv(
-                f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv",
+                f"{self.work_dir_day}/{self.training_data_name}_{self.nb_days}_days.csv",
                 sep=",",
                 index=False,
             )
             df_testing_all.to_csv(
-                f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv",
+                f"{self.work_dir_day}/{self.test_data_name}_{self.nb_days}_days.csv",
                 sep=",",
                 index=False,
             )
 
-    def fit_model(self, stopping_rounds: int = 2):
+    def fit_model(self, stopping_rounds: int = 2) -> None:
         df_training = pd.read_csv(
-            f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv"
+            f"{self.work_dir_day}/{self.training_data_name}_{self.nb_days}_days.csv"
         )
 
         X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
@@ -500,25 +502,30 @@ class LoadDumpLightGBM:
         )
 
         # Save training time and validaton data error at termination
-        with open(f"{self.work_dir}/track_performance.txt", "a") as f:
+        with open(f"{self.work_dir}/track_performances_across_days.txt", "a") as f:
             f.write(
-                f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}_{self.nb_days}_days.\nValidation multi logloss: {self.booster_record_eval['Val']['multi_logloss'][-1]}\n"
+                f"...\nTraining time: {time.perf_counter() - t0} s\n"
+                f"Data set: {self.training_data_name}_{self.nb_days}_days.\n"
+                f"Validation multi logloss at termination: {self.booster_record_eval['Val']['multi_logloss'][-1]}\n"
+                f"Best iteration: {model.best_iteration_} \n \n"
             )
             f.flush()
 
-        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
+        joblib.dump(model, f"{self.work_dir_day}/lgm_model_{self.nb_days}_days.bin")
 
-    def plot_feature_importances(self):
+    def plot_feature_importances(self) -> None:
         # Save feature importances as png
         fig_fi = lgbm.plot_importance(
-            joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin"),
+            joblib.load(f"{self.work_dir_day}/lgm_model_{self.nb_days}_days.bin"),
             figsize=(15, 10),
         ).figure
         fig_fi.tight_layout()
-        fig_fi.savefig(f"{self.work_dir}/feature_importance.png")
+        fig_fi.savefig(
+            f"{self.work_dir_day}/feature_importance_{self.nb_days}_days.png"
+        )
         plt.close(fig_fi)
 
-    def plot_learning_curve(self):
+    def plot_learning_curve(self) -> None:
         # Save learning curve as png
         fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
         ax_lc.set_yscale("log")
@@ -529,35 +536,41 @@ class LoadDumpLightGBM:
             dataset=f"{self.training_data_name}_{self.nb_days}_days",
         )
         fig_lc.tight_layout()
-        fig_lc.savefig(f"{self.work_dir}/learning_curve.png")
+        fig_lc.savefig(f"{self.work_dir_day}/learning_curve_{self.nb_days}_days.png")
         plt.close(fig_lc)
 
-    def predict_and_save_csv(self):
+    def predict_and_save_csv(self) -> None:
         df_testing = pd.read_csv(
-            f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv"
+            f"{self.work_dir_day}/{self.test_data_name}_{self.nb_days}_days.csv"
         )
 
-        loaded_model = joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
+        loaded_model = joblib.load(
+            f"{self.work_dir_day}/lgm_model_{self.nb_days}_days.bin"
+        )
 
         # this is the order of the output matrix
         driving_label, dump_label, load_label = loaded_model.classes_
 
-        pred_testing_proba: np.ndarray = loaded_model.predict_proba(
+        pred_testing_probas: np.ndarray = loaded_model.predict_proba(
             df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
         )
-        pred_testing_label: np.ndarray = loaded_model.predict(
+        pred_testing_labels: np.ndarray = loaded_model.predict(
             df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
         )
 
-        df_testing[f"proba_{driving_label}"] = pred_testing_proba[:, 0]
-        df_testing[f"proba_{dump_label}"] = pred_testing_proba[:, 1]
-        df_testing[f"proba_{load_label}"] = pred_testing_proba[:, 2]
-        df_testing["predicted_class"] = pred_testing_label
-        df_testing.to_csv(f"{self.work_dir}/pred_test.csv", sep=",", index=False)
+        df_testing[f"proba_{driving_label}"] = pred_testing_probas[:, 0]
+        df_testing[f"proba_{dump_label}"] = pred_testing_probas[:, 1]
+        df_testing[f"proba_{load_label}"] = pred_testing_probas[:, 2]
+        df_testing["predicted_class"] = pred_testing_labels
+        df_testing.to_csv(
+            f"{self.work_dir_day}/pred_test_{self.nb_days}_days.csv",
+            sep=",",
+            index=False,
+        )
 
-    def plot_statistics(self):
+    def plot_statistics(self) -> None:
         df_preds = pd.read_csv(
-            f"{self.work_dir}/pred_test.csv",
+            f"{self.work_dir_day}/pred_test_{self.nb_days}_days.csv",
             sep=",",
             usecols=[
                 "output_labels",
@@ -577,8 +590,8 @@ class LoadDumpLightGBM:
             for idx2, metric in enumerate(metrics):
                 data[idx1][idx2] = round(class_report[label][metric], 3)
 
-        plt.figure(figsize=(10, 10))
-        plt.matshow(data, cmap="Blues")
+        fig, ax = plt.subplots(figsize=(6, 6))
+        plt.matshow(data, cmap="Blues", fignum=0)  # plot in 'ax'
         plt.xticks(np.arange(len(metrics)), metrics)
         plt.yticks(np.arange(len(labels)), labels)
         plt.colorbar(cmap="Blues")
@@ -588,19 +601,21 @@ class LoadDumpLightGBM:
                 plt.text(j, i, str(data[i, j]), va="center", ha="center")
 
         plt.xlabel("Metrics")
-        plt.ylabel("Classes")
-        plt.title("Performance Metrics by Class")
-        plt.savefig(f"{self.work_dir}/metrics.png")
+        plt.ylabel("Labels")
+        plt.tight_layout()
+
+        plt.savefig(f"{self.work_dir_day}/statistics_{self.nb_days}_days.png")
 
     def plot_confusion_matrix(self) -> None:
         df_preds = pd.read_csv(
-            f"{self.work_dir}/pred_test.csv",
+            f"{self.work_dir_day}/pred_test_{self.nb_days}_days.csv",
             sep=",",
             usecols=["output_labels", "predicted_class"],
         )
         y_true = df_preds["output_labels"]
         y_pred = df_preds["predicted_class"]
-        fig, ax = plt.subplots(figsize=(5, 5))
+        fig, ax = plt.subplots(figsize=(6, 6))
         ConfusionMatrixDisplay.from_predictions(y_true, y_pred, cmap="Blues", ax=ax)
-        fig.savefig(f"{self.work_dir}/confusion_matrix_{self.nb_days}_days.png")
+        fig.tight_layout()
+        fig.savefig(f"{self.work_dir_day}/confusion_matrix_{self.nb_days}_days.png")
         plt.show()
