@@ -19,7 +19,6 @@ from sklearn.metrics import (
     classification_report,
     ConfusionMatrixDisplay,
 )
-import seaborn as sns
 from typing import Literal
 from helper_functions.schemas import Position
 
@@ -329,8 +328,9 @@ class LoadDumpLightGBM:
     ----------
     nb_days : int or Literal["all"]
         Number of days of data to use for model training and testing.
+        Raises ValueError if int(nb_days) exceeds the available number of days accessable
     group_size : int
-        Size of each data group.
+        Size of each data group. A larger value means the model will predict on a larger timeframe
     starting_from : int
         Index to start from in the list of available days.
     work_dir : str
@@ -372,19 +372,9 @@ class LoadDumpLightGBM:
         gps_data_dir: str = "data/GPSData",
         work_dir: str = "data/ml_model_data",
     ) -> None:
-        #  verify nb_days (type and length constrained)
-        if isinstance(nb_days, int):
-            if nb_days > len(os.listdir(gps_data_dir + "/trips")):
-                raise ValueError(
-                    f"The 'nb_days' parameter ({nb_days}) cannot be greater than the number of days ({len(os.listdir(gps_data_dir+'/trips'))})."
-                )
-        elif isinstance(nb_days, str):
-            if nb_days.lower() != "all":
-                raise ValueError("The string value for 'nb_days' must be 'all'.")
-        else:
-            raise ValueError(
-                "The 'nb_days' parameter must be an integer or the string 'all'."
-            )
+        #  check if folder structure is ok, verify nb_days
+        self._check_folder_structure(gps_data_dir)
+        self._validate_nb_days(nb_days, gps_data_dir)
 
         print("Initializing class:")
         print("----------------------")
@@ -407,10 +397,34 @@ class LoadDumpLightGBM:
         self.test_data_name = "my_test_from_class"
         self.lgbm_custom_params = CustomLightgbmParams()
 
+    def _check_folder_structure(self, gps_data_dir: str):
+        for folder in ["trips", "tripsInfo"]:
+            folder_path = os.path.join(gps_data_dir, folder)
+            if not os.path.isdir(folder_path):
+                raise FileNotFoundError(
+                    f"Please have folders 'trips' and 'tripsInfo' located in {gps_data_dir}"
+                )
+        print("Folders 'trips' and 'tripsInfo' correctly set up")
+
+    def _validate_nb_days(self, nb_days: int | Literal["all"], gps_data_dir: str):
+        if isinstance(nb_days, int):
+            if nb_days > len(os.listdir(os.path.join(gps_data_dir, "trips"))):
+                raise ValueError(
+                    f"The 'nb_days' parameter ({nb_days}) cannot be greater than the number"
+                    f"of days in GPSData/trips: ({len(os.listdir(os.path.join(gps_data_dir, 'trips')))})."
+                )
+        elif isinstance(nb_days, str):
+            if nb_days.lower() != "all":
+                raise ValueError("The string value for 'nb_days' must be 'all'.")
+        else:
+            raise ValueError(
+                "The 'nb_days' parameter must be an integer or the string 'all'."
+            )
+
     def load_data(self) -> None:
         self.days = [
             csv_file.split(".csv")[0]
-            for csv_file in os.listdir(f"{self.gps_data_dir}/trips")
+            for csv_file in os.listdir(f"{self.gps_data_dir + '/trips'}")
         ]
         print("Start at day ", self.days[self.starting_from])
         machine_type = "Truck"
