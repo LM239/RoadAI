@@ -277,7 +277,7 @@ def split_data_into_training_and_validation(
     return (X_train, X_test, y_train, y_test)
 
 
-def plot_learning_curve(
+def get_learning_curve(
     booster: dict | LGBMModel,
     metric: str | None,
     ax,
@@ -306,7 +306,7 @@ def plot_learning_curve(
         metric=metric,
         ax=ax,
         grid=True,
-        title=f"Learning curve {dataset}",
+        title=f"Learning curve for dataset: {dataset}",
         ylabel="Multi logloss",
     )
 
@@ -430,7 +430,7 @@ class LoadDumpLightGBM:
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
             trip = dataloader.TripsLoader(day)
-            for machine_id, machine in trip._machines.items():
+            for _, machine in trip._machines.items():
                 if machine.machine_type == machine_type:
                     automated_for_given_machine = PrepareMachineData(machine)
                     automated_for_given_machine.get_speed_and_acceleration()
@@ -481,7 +481,7 @@ class LoadDumpLightGBM:
             df_training
         )
 
-        booster_record_eval = {}
+        self.booster_record_eval = {}
         model = lgbm.LGBMClassifier(
             n_estimators=1000,
             class_weight={"Load": 2000, "Dump": 2000, "Driving": 1},
@@ -499,14 +499,35 @@ class LoadDumpLightGBM:
             eval_names=["Train", "Val"],
             callbacks=[
                 early_stopping(stopping_rounds=stopping_rounds),
-                record_evaluation(booster_record_eval),
+                record_evaluation(self.booster_record_eval),
             ],
         )
+
+        # Save training time and validaton data error at termination
+        with open(f"{self.work_dir}/track_performance.txt", "a") as f:
+            f.write(
+                f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}_{self.nb_days}_days.\nValidation multi logloss: {self.booster_record_eval['Val']['multi_logloss'][-1]}\n"
+            )
+            f.flush()
+
+        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
+
+    def plot_feature_importances(self):
+        # Save feature importances as png
+        fig_fi = lgbm.plot_importance(
+            joblib.load(f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin"),
+            figsize=(15, 10),
+        ).figure
+        fig_fi.tight_layout()
+        fig_fi.savefig(f"{self.work_dir}/feature_importance.png")
+        plt.close(fig_fi)
+
+    def plot_learning_curve(self):
         # Save learning curve as png
         fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
         ax_lc.set_yscale("log")
-        plot_learning_curve(
-            booster=booster_record_eval,
+        get_learning_curve(
+            booster=self.booster_record_eval,
             metric=self.LightGBMParams["metric"],
             ax=ax_lc,
             dataset=f"{self.training_data_name}_{self.nb_days}_days",
@@ -514,21 +535,6 @@ class LoadDumpLightGBM:
         fig_lc.tight_layout()
         fig_lc.savefig(f"{self.work_dir}/learning_curve.png")
         plt.close(fig_lc)
-
-        # Save feature importances as png
-        fig_fi = lgbm.plot_importance(model, figsize=(15, 10)).figure
-        fig_fi.tight_layout()
-        fig_fi.savefig(f"{self.work_dir}/feature_importance.png")
-        plt.close(fig_fi)
-
-        # Save training time and validaton data error at termination
-        with open(f"{self.work_dir}/track_performance.txt", "a") as f:
-            f.write(
-                f"...\nTraining time: {time.perf_counter() - t0} s\nData set: {self.training_data_name}_{self.nb_days}_days.\nValidation multi logloss: {booster_record_eval['Val']['multi_logloss'][-1]}\n"
-            )
-            f.flush()
-
-        joblib.dump(model, f"{self.work_dir}/lgm_model_{self.nb_days}_days.bin")
 
     def predict(self):
         df_testing = pd.read_csv(
