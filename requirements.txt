@@ -8,6 +8,7 @@ pydantic
 pyproj
 h5py
 ipyleaflet
+ipywidgets
 opencv-python
 geopy
 plotly
@@ -15,4 +16,6 @@ nbformat
 tqdm
 seaborn
 lightgbm==4.0.0
-ipywidgets
+notebook
+nbconvert
+PyPDF2

@@ -1,4 +1,4 @@
-from ipyleaflet import Map, Polygon, DivIcon, LayerGroup, Marker, ImageOverlay
+from ipyleaflet import Map, Polygon, DivIcon, LayerGroup, Marker, ImageOverlay, LegendControl
 import numpy as np
 from helper_functions.dataloader import TripsLoader
 from ipywidgets import Layout, HTML, SelectionSlider, IntSlider, Output, VBox, HBox
@@ -8,9 +8,12 @@ from IPython.display import display
 import pickle as pkl
 from datetime import datetime
 import os
+from ipywebrtc import WidgetStream, ImageRecorder
 
 # The `InteractiveMap` class is a Python class that represents an interactive map with overlays and
 # markers for dump and load regions, and provides functionality to update the map based on user input.
+
+
 class InteractiveMap:
     def __init__(self, trips: TripsLoader) -> None:
         """
@@ -86,13 +89,13 @@ class InteractiveMap:
         self.machine_type_slider.observe(
             self.update_machine_type, names='value')
 
-    def plot_interactive_map(self):
+    def plot_interactive_map(self, jupyter=False):
         """
         The function plots an interactive map with sliders and a textbox for user input.
         """
         self.update_map()
 
-        self.initial_map_overlay()
+        self.initial_map_overlay(jupyter=jupyter)
         # set optimal k's before any slider modifications
         self.k_dump_slider.value = self.k_dump
         self.k_load_slider.value = self.k_load
@@ -103,8 +106,10 @@ class InteractiveMap:
                            self.machine_type_slider, self.info_textbox])
         hbox_layout = HBox([self.m, vbox_layout])
         display(hbox_layout)
+        # display(hbox_layout)
+        return hbox_layout
 
-    def initial_map_overlay(self):
+    def initial_map_overlay(self, jupyter=False):
         """
         The function `initial_map_overlay` adds image overlays to a map based on specific file names and
         their corresponding bounds.
@@ -112,7 +117,7 @@ class InteractiveMap:
         file_to_bounds = {}
         with open(self.file_to_bounds_path, 'rb') as handle:
             file_to_bounds = pkl.load(handle)
-        
+
         input_date = datetime.strptime(self.day, '%m-%d-%Y')
 
         filenames_skaret = [e for e in file_to_bounds.keys() if e.split('_')[
@@ -131,15 +136,23 @@ class InteractiveMap:
         date_string_nordlandsdalen = 'P08_' + \
             nordlandsdalen_closest_date.strftime(
                 '%y%m%d') + '_Nordlandsdalen-Orthomosaic.png'
-        
-        path_host ='https://raw.githubusercontent.com/oyste/image_host/main/docs/assets/'
+        path_relative = 'public_data/png_folder/'
+        path_host = 'https://raw.githubusercontent.com/oyste/image_host/main/docs/assets/'
+
+        path = path_host if jupyter else path_relative
+
         # add skaret og nordlandsdalen overlay
         im_overlay_skaret = ImageOverlay(
-            url=path_host + date_string_skaret, bounds=file_to_bounds[date_string_skaret])
+            url=path + date_string_skaret, bounds=file_to_bounds[date_string_skaret])
         im_overlay_nordlandsdalen = ImageOverlay(
-            url=path_host + date_string_nordlandsdalen, bounds=file_to_bounds[date_string_nordlandsdalen])
+            url=path + date_string_nordlandsdalen, bounds=file_to_bounds[date_string_nordlandsdalen])
         self.m.add_layer(im_overlay_skaret)
         self.m.add_layer(im_overlay_nordlandsdalen)
+
+        # legend overlay
+        leg = LegendControl({'Dump': '#00F', 'Load': '#F00'},
+                            name='Zones', position='topright')
+        self.m.add_control(leg)
 
     def find_closest_date(self, input_date, date_list):
         """
