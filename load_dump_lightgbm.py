@@ -15,7 +15,11 @@ import joblib
 import lightgbm as lgbm
 import time
 from lightgbm import early_stopping, record_evaluation, LGBMModel
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+)
 import seaborn as sns
 from typing import Literal
 from helper_functions.schemas import Position
@@ -481,12 +485,17 @@ class LoadDumpLightGBM:
             df_training
         )
 
-        self.booster_record_eval = {}
+        count_series = df_training["output_labels"].value_counts()
         model = lgbm.LGBMClassifier(
             n_estimators=1000,
-            class_weight={"Load": 2000, "Dump": 2000, "Driving": 1},
+            class_weight={
+                "Driving": 1,
+                "Load": count_series["Driving"] / count_series["Load"],
+                "Dump": count_series["Driving"] / count_series["Dump"],
+            },
             verbose=-1,
         )
+        self.booster_record_eval = {}
         t0 = time.perf_counter()
         model = model.fit(
             X_train,
@@ -559,62 +568,43 @@ class LoadDumpLightGBM:
         df_testing["predicted_class"] = pred_testing_label
         df_testing.to_csv(f"{self.work_dir}/pred_test.csv", sep=",", index=False)
 
-        # # store load and dump avg. probability
-        # load_proba, dump_proba, driving_proba = get_avg_probabilities(df_testing)
-        # # save to file
-        # write_proba_score_test_data(load_proba, dump_proba, driving_proba)
-
-    def results(self):
-        pred_dict = {}
+    def metrics_2d_plot(self):
         df_preds = pd.read_csv(
             f"{self.work_dir}/pred_test.csv",
             sep=",",
             usecols=[
                 "output_labels",
-                "proba_Driving",
-                "proba_Dump",
-                "proba_Load",
                 "predicted_class",
             ],
         )
-        events = ["Load", "Driving", "Dump"]
-        pred_events = ["proba_Load", "proba_Driving", "proba_Dump"]
-        for event in events:
-            for pred_event in pred_events:
-                filtered_df = df_preds[df_preds["output_labels"] == event]
-                pred_dict[f"{pred_event} | {event} "] = filtered_df[pred_event].mean()
-
-        pd.DataFrame(
-            {
-                "Condition": list(pred_dict.keys()),
-                "Probabilities": list(pred_dict.values()),
-            }
-        ).to_csv(
-            f"{self.work_dir}/probabilities_{self.nb_days}_days.csv",
-            index=False,
-            sep=",",
-        )
-
         y_true = df_preds["output_labels"]
         y_pred = df_preds["predicted_class"]
+        class_report: dict = classification_report(y_true, y_pred, output_dict=True)  # type: ignore
 
-        # Assuming you have 'y_true' (true labels) and 'y_pred' (predicted labels) defined
-        class_report = classification_report(y_true, y_pred, output_dict=True)
-        self.statistics = {
-            "Driving": {"accuracy": [], "precision": [], "f1-score": []},
-            "Dump": {"accuracy": [], "precision": [], "f1-score": []},
-            "Load": {"accuracy": [], "precision": [], "f1-score": []},
-        }
+        # assuming labels are keys in class_report with metrics as values
+        labels = ["Driving", "Dump", "Load"]
+        metrics = ["precision", "recall", "f1-score"]
+        data = np.zeros((len(labels), len(metrics)))
+        for idx1, label in enumerate(labels):
+            for idx2, metric in enumerate(metrics):
+                data[idx1][idx2] = round(class_report[label][metric], 3)
 
-        for activity in ["Driving", "Dump", "Load"]:
-            self.statistics[activity]["precision"].append(
-                class_report[activity]["precision"]
-            )
-            self.statistics[activity]["f1-score"].append(
-                class_report[activity]["f1-score"]
-            )
+        plt.figure(figsize=(10, 10))
+        plt.matshow(data, cmap="coolwarm")
+        plt.xticks(np.arange(len(metrics)), metrics)
+        plt.yticks(np.arange(len(labels)), labels)
+        plt.colorbar(cmap="Blues")
 
-    def confusion_matrix(self):
+        for i in range(len(labels)):
+            for j in range(len(metrics)):
+                plt.text(j, i, str(data[i, j]), va="center", ha="center")
+
+        plt.xlabel("Metrics")
+        plt.ylabel("Classes")
+        plt.title("Performance Metrics by Class")
+        plt.savefig(f"{self.work_dir}/metrics.png")
+
+    def confusion_matrix(self) -> None:
         df_preds = pd.read_csv(
             f"{self.work_dir}/pred_test.csv",
             sep=",",
@@ -622,23 +612,8 @@ class LoadDumpLightGBM:
         )
         y_true = df_preds["output_labels"]
         y_pred = df_preds["predicted_class"]
-        # Assuming you have 'y_true' (true labels) and 'y_pred' (predicted labels) defined
-        conf_matrix = confusion_matrix(y_true, y_pred)
-
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(
-            conf_matrix,
-            annot=True,
-            fmt="d",
-            cmap="Blues",
-            xticklabels=["Driving", "Dump", "Load"],
-            yticklabels=["Driving", "Dump", "Load"],
-        )
-        plt.xlabel("Predicted Labels")
-        plt.ylabel("True Labels")
-        plt.title("Confusion Matrix")
-        plt.tight_layout()
-        plt.savefig(f"{self.work_dir}/confusion_matrix.png")
+        ConfusionMatrixDisplay.from_predictions(y_true, y_pred, cmap="Blues")
+        plt.savefig(f"{self.work_dir}/confusion_matrix_{self.nb_days}_days.png")
         plt.show()
 
     def confusion_matrix_with_probabilities(self):
