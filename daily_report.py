@@ -87,9 +87,6 @@ class DailyReport:
             if machine.trips[-1].positions[-1].timestamp > last_timestamp:
                 last_timestamp = machine.trips[-1].positions[-1].timestamp
 
-        print(first_timestamp)
-        print(last_timestamp)
-
         # Create a list of timestamps throughout day
         current_datetime = first_timestamp
         self.datetime_intervals = []
