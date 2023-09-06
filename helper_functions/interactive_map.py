@@ -4,7 +4,8 @@ from helper_functions.dataloader import TripsLoader
 from ipywidgets import Layout, HTML, SelectionSlider, IntSlider, Output, VBox, HBox
 from scipy.spatial import ConvexHull
 from sklearn.cluster import AgglomerativeClustering
-from IPython.display import display, HTML as IHTML
+from IPython.core.display import HTML as IHTML
+from IPython.display import display, clear_output, IFrame
 import pickle as pkl
 from datetime import datetime
 import os
@@ -109,10 +110,13 @@ class InteractiveMap:
     
     def plot_static_map(self):
         # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
+        #clear_output()
         text = IHTML(self.info_textbox.value)
         self.m.save('public_data/static_map/interact_static_ver.html', title='MYMAP')
         map = IHTML('public_data/static_map/interact_static_ver.html')
+        #mapstr = IHTML('public_data/static_map/interact_static_ver.html')
         display(map, text)
+        #display(IFrame(src='public_data/static_map/interact_static_ver.html', width=1000, height=600))
 
     def initial_map_overlay(self, jupyter=False):
         """

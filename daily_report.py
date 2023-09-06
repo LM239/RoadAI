@@ -7,6 +7,7 @@ import plotly.express as px
 import ipyleaflet as L
 import numpy as np
 from helper_functions.interactive_map import InteractiveMap
+from IPython.display import display, IFrame
 
 
 class DailyReport:
@@ -176,18 +177,18 @@ class DailyReport:
         # fig.write_html("./data/output_html/idle_timeline.html")
 
     # Function that plot map of position of machines at peak times during day
-    def plot_peak_times(self, threshold: int):
-
-        # Froces you to run aggregated_idle_timeline first
+    def plot_peak_times(self, threshold: int, static=False):
+        # Forces you to run aggregated_idle_timeline first
         if not len(self.datetime_intervals) > 0:
             self.aggregated_idle_timeline()
 
         last_val = 0  # Want to avoid plotting similar maps for same idle period
-
+        plotted = False
         for i in range(len(self.datetime_intervals)):
             list_of_positions = []
             list_of_load_waiting = []
-            if self.nb_of_idle_machines[i] >= threshold and self.nb_of_idle_machines[i] > last_val:
+            if self.nb_of_idle_machines[i] >= threshold and self.nb_of_idle_machines[i] > last_val and not plotted:
+                #plotted = True
                 last_val = self.nb_of_idle_machines[i]
                 # We are at or above threshold. Want to plot position of idle machines
                 time = self.datetime_intervals[i]
@@ -216,29 +217,37 @@ class DailyReport:
 
                 # Create a map centered at the mean of all coordinates, with heatmap
                 points_center = np.mean(list_of_positions, axis=0)
-                m = L.Map(center=(points_center[0], points_center[1]), zoom=12)
+                m5 = L.Map(center=(points_center[0], points_center[1]), zoom=12)
                 for k in range(len(list_of_positions)):
                     if list_of_load_waiting[k]:
                         load_icon = L.Icon(
                             icon_url='https://cdn-icons-png.flaticon.com/512/2716/2716797.png', icon_size=[32, 32], icon_anchor=[16, 16])
                         load_mark = L.Marker(
                             location=list_of_positions[k], icon=load_icon, rotation_angle=0, rotation_origin='22px 94px')
-                        m.add_layer(load_mark)
+                        m5.add_layer(load_mark)
                     else:
                         dump_icon = L.Icon(
                             icon_url='https://cdn-icons-png.flaticon.com/512/1435/1435320.png', icon_size=[32, 32], icon_anchor=[16, 16])
                         dump_mark = L.Marker(
                             location=list_of_positions[k], icon=dump_icon, rotation_angle=0, rotation_origin='22px 94px')
-                        m.add_layer(dump_mark)
+                        m5.add_layer(dump_mark)
                 # Display the map
-                display(m)
+                if static:
+                    # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
+                    #text = IHTML(str(time))
+                    m5.save(f'public_data/static_map/peak_idle_map{i}.html', title='PeakIdle')
+                    #m6 = IHTML(filename = f'public_data/static_map/peak_idle_map{time}.html')
+                    #display(m6, text)
+                    display(IFrame(src=f'public_data/static_map/peak_idle_map{i}.html', width=1000, height=600))
+                else:    
+                    display(m5)
                 # m.save('./data/output_html/my_map.html',
                 #       title='PeakTime position and status')
             else:
                 last_val = 0
 
     # Function that plots heatmap of all idle times for day
-    def plot_idle_heatmap(self):
+    def plot_idle_heatmap(self, static=False):
 
         list_of_idle_positions = []
         for machine_id, machine in self.trips._machines.items():
@@ -250,12 +259,19 @@ class DailyReport:
         list_of_idle_positions = [
             l for sublist in list_of_idle_positions for l in sublist]
         points_center = np.mean(list_of_idle_positions, axis=0)
-        m = L.Map(center=(points_center[0], points_center[1]), zoom=12)
+        m10 = L.Map(center=(points_center[0], points_center[1]), zoom=12)
         # Add markers for each cluster center to the map
         heatmap = L.Heatmap(locations=list_of_idle_positions, radius=10)
-        m.add_layer(heatmap)
+        m10.add_layer(heatmap)
         # Display the map
-        display(m)
+        display(m10)
+        if static:
+            # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
+            #text = IHTML(str(time))
+            m10.save('public_data/static_map/peak_idle_heatmap.html', title='PeakIdle')
+            display(IFrame(src = 'public_data/static_map/peak_idle_heatmap.html', width=1000, height=600))
+        else:    
+            display(m10)
         # m.save('./data/output_html/heatmap_idle.html',
         #       title='Heatmap idle times')
 
