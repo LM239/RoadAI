@@ -4,7 +4,7 @@ from helper_functions.dataloader import TripsLoader
 from ipywidgets import Layout, HTML, SelectionSlider, IntSlider, Output, VBox, HBox
 from scipy.spatial import ConvexHull
 from sklearn.cluster import AgglomerativeClustering
-from IPython.display import display
+from IPython.display import display, HTML as IHTML
 import pickle as pkl
 from datetime import datetime
 import os
@@ -92,6 +92,7 @@ class InteractiveMap:
         """
         The function plots an interactive map with sliders and a textbox for user input.
         """
+
         self.update_map()
 
         self.initial_map_overlay(jupyter=jupyter)
@@ -105,8 +106,13 @@ class InteractiveMap:
                            self.machine_type_slider, self.info_textbox])
         hbox_layout = HBox([self.m, vbox_layout])
         display(hbox_layout)
-        # display(hbox_layout)
-        return hbox_layout
+    
+    def plot_static_map(self):
+        # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
+        text = IHTML(self.info_textbox.value)
+        self.m.save('public_data/static_map/interact_static_ver.html', title='MYMAP')
+        map = IHTML('public_data/static_map/interact_static_ver.html')
+        display(map, text)
 
     def initial_map_overlay(self, jupyter=False):
         """
@@ -147,11 +153,6 @@ class InteractiveMap:
             url=path + date_string_nordlandsdalen, bounds=file_to_bounds[date_string_nordlandsdalen])
         self.m.add_layer(im_overlay_skaret)
         self.m.add_layer(im_overlay_nordlandsdalen)
-
-        # legend overlay
-        leg = LegendControl({'Dump': '#00F', 'Load': '#F00'},
-                            name='Zones', position='topright')
-        self.m.add_control(leg)
 
     def find_closest_date(self, input_date, date_list):
         """
@@ -238,6 +239,12 @@ class InteractiveMap:
         #  populate map with dumps and loads
         self.populate_map('dump')
         self.populate_map('load')
+
+        # legend overlay
+        leg = LegendControl({'Dump': '#00F', 'Load': '#F00'},
+                            name='Zones', position='topright')
+        self.m.add_control(leg)
+        self.overlays.append(leg)
 
     def update_textbox(self):
         """
