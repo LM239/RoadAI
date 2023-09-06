@@ -8,7 +8,6 @@ from IPython.display import display
 import pickle as pkl
 from datetime import datetime
 import os
-from ipywebrtc import WidgetStream, ImageRecorder
 
 # The `InteractiveMap` class is a Python class that represents an interactive map with overlays and
 # markers for dump and load regions, and provides functionality to update the map based on user input.
