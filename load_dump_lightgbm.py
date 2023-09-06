@@ -17,7 +17,6 @@ import time
 from lightgbm import early_stopping, record_evaluation, LGBMModel
 from sklearn.metrics import (
     classification_report,
-    confusion_matrix,
     ConfusionMatrixDisplay,
 )
 import seaborn as sns
@@ -315,57 +314,10 @@ def get_learning_curve(
     )
 
 
-# def get_avg_probabilities(df_pred: pd.DataFrame) -> tuple[float, float, float]:
-#     """
-#     The function `get_avg_probabilities` calculates the average probabilities for the "Load", "Dump",
-#     and "Driving" labels in a given DataFrame.
-
-#     :param df_pred: The parameter `df_pred` is a pandas DataFrame that contains the predictions made by
-#     a model. It should have the following columns:
-#     :type df_pred: pd.DataFrame
-#     :return: a tuple of three floats representing the average probabilities for the "Load", "Dump", and
-#     "Driving" labels in the given DataFrame.
-#     """
-#     # filter to return only rows where we have loads and dumps
-#     true_loads_rows = df_pred.loc[df_pred["output_labels"] == "Load", "proba_Load"]
-#     true_dumps_rows = df_pred.loc[df_pred["output_labels"] == "Dump", "proba_Dump"]
-#     true_driving_rows = df_pred.loc[
-#         df_pred["output_labels"] == "Driving", "proba_Driving"
-#     ]
-
-#     # Calculate average probabilties
-#     load_proba = true_loads_rows.sum() / len(true_loads_rows)
-#     dump_proba = true_dumps_rows.sum() / len(true_dumps_rows)
-#     driving_proba = true_driving_rows.sum() / len(true_driving_rows)
-
-#     return (load_proba, dump_proba, driving_proba)
-
-
-# def write_proba_score_test_data(
-#     load_proba: float, dump_proba: float, driving_proba: float
-# ) -> None:
-#     """
-#     The function `write_proba_score_test_data` appends the average probabilities of three
-#     classes ('Load', 'Dump', 'Driving') to a text file.
-
-#     :param load_proba: The average probability score for the 'Load' class.
-#     :type load_proba: float
-
-#     :param dump_proba: The average probability score for the 'Dump' class.
-#     :type dump_proba: float
-
-#     :param driving_proba: The average probability score for the 'Driving' class.
-#     :type driving_proba: float
-
-#     :return: None. The function writes the average probabilities to a text file.
-#     """
-#     track_performance_file_path = Path("data/ml_model_data/preds/track_performance.txt")
-#     track_performance_file_path.parent.mkdir(parents=True, exist_ok=True)
-#     with open(track_performance_file_path, "a") as f:
-#         f.write(
-#             f"------------------\nLoad avg. proba: {load_proba}\nDump avg. proba {dump_proba}...\nDriving proba: {driving_proba}\n\n\n"
-#         )
-#         f.flush()
+class CustomLightgbmParams:
+    def __init__(self, metric="multi_logloss", n_estimators=2000):
+        self.metric = metric
+        self.n_estimators = n_estimators
 
 
 class LoadDumpLightGBM:
@@ -408,15 +360,7 @@ class LoadDumpLightGBM:
         self.gps_data_dir = gps_data_dir
         self.training_data_name = "my_train_from_class"
         self.test_data_name = "my_test_from_class"
-
-        self.LightGBMParams = {
-            "boosting_type": "gbdt",
-            "metric": "multi_logloss",
-            "num_leaves": 31,
-            "learning_rate": 0.5,
-            "feature_fraction": 1,
-            "num_boost_round": 1000,
-        }
+        self.lgbm_custom_params = CustomLightgbmParams()
 
     def load_data(self):
         self.days = [
@@ -487,7 +431,7 @@ class LoadDumpLightGBM:
 
         count_series = df_training["output_labels"].value_counts()
         model = lgbm.LGBMClassifier(
-            n_estimators=1000,
+            **self.lgbm_custom_params.__dict__,
             class_weight={
                 "Driving": 1,
                 "Load": count_series["Driving"] / count_series["Load"],
@@ -504,7 +448,7 @@ class LoadDumpLightGBM:
                 (X_train, y_train),
                 (X_val, y_val),
             ],
-            eval_metric=self.LightGBMParams["metric"],
+            eval_metric=self.lgbm_custom_params.metric,
             eval_names=["Train", "Val"],
             callbacks=[
                 early_stopping(stopping_rounds=stopping_rounds),
@@ -537,7 +481,7 @@ class LoadDumpLightGBM:
         ax_lc.set_yscale("log")
         get_learning_curve(
             booster=self.booster_record_eval,
-            metric=self.LightGBMParams["metric"],
+            metric=self.lgbm_custom_params.metric,
             ax=ax_lc,
             dataset=f"{self.training_data_name}_{self.nb_days}_days",
         )
@@ -585,6 +529,7 @@ class LoadDumpLightGBM:
         labels = ["Driving", "Dump", "Load"]
         metrics = ["precision", "recall", "f1-score"]
         data = np.zeros((len(labels), len(metrics)))
+
         for idx1, label in enumerate(labels):
             for idx2, metric in enumerate(metrics):
                 data[idx1][idx2] = round(class_report[label][metric], 3)
@@ -654,15 +599,3 @@ class LoadDumpLightGBM:
         plt.tight_layout()
         plt.savefig(f"{self.work_dir}/average_predicted_probabilities.png")
         plt.show()
-
-
-# %%
-
-if __name__ == "__main__":
-    myModel = LoadDumpLightGBM(nb_days=30, group_size=10)
-    myModel.load_data()
-    myModel.fit()
-    myModel.predict()
-    myModel.results()
-    myModel.confusion_matrix()
-# %%
