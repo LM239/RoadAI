@@ -321,6 +321,49 @@ class CustomLightgbmParams:
 
 
 class LoadDumpLightGBM:
+    """
+    A class used for machine learning analysis of load and dump data
+    with LightGBM.
+
+    Attributes
+    ----------
+    nb_days : int or Literal["all"]
+        Number of days of data to use for model training and testing.
+    group_size : int
+        Size of each data group.
+    starting_from : int
+        Index to start from in the list of available days.
+    work_dir : str
+        Directory where the model data will be saved.
+    gps_data_dir : str
+        Directory where the GPS data is stored.
+    training_data_name : str
+        The name of the training data file.
+    test_data_name : str
+        The name of the test data file.
+    lgbm_custom_params : CustomLightgbmParams
+        Custom parameters for LightGBM training.
+    booster_record_eval : dict
+        Dictionary to record evaluation metrics during model training.
+
+    Methods
+    -------
+    load_data()
+        Load the data for model training and testing.
+    fit_model(stopping_rounds: int = 2)
+        Fit the LightGBM model.
+    plot_feature_importances()
+        Plot and save the feature importances of the trained model.
+    plot_learning_curve()
+        Plot and save the learning curve of the trained model.
+    predict_and_save_csv()
+        Make predictions on the test set.
+    plot_statistics()
+        Plot precision, recall and f1-score into 2d plot as a matrix
+    plot_confusion_matrix()
+        Plot and save the confusion matrix of the model.
+    """
+
     def __init__(
         self,
         group_size: int = 5,
@@ -420,7 +463,7 @@ class LoadDumpLightGBM:
                 index=False,
             )
 
-    def fit(self, stopping_rounds: int = 2):
+    def fit_model(self, stopping_rounds: int = 2):
         df_training = pd.read_csv(
             f"{self.work_dir}/{self.training_data_name}_{self.nb_days}_days.csv"
         )
@@ -489,7 +532,7 @@ class LoadDumpLightGBM:
         fig_lc.savefig(f"{self.work_dir}/learning_curve.png")
         plt.close(fig_lc)
 
-    def predict(self):
+    def predict_and_save_csv(self):
         df_testing = pd.read_csv(
             f"{self.work_dir}/{self.test_data_name}_{self.nb_days}_days.csv"
         )
@@ -512,7 +555,7 @@ class LoadDumpLightGBM:
         df_testing["predicted_class"] = pred_testing_label
         df_testing.to_csv(f"{self.work_dir}/pred_test.csv", sep=",", index=False)
 
-    def metrics_2d_plot(self):
+    def plot_statistics(self):
         df_preds = pd.read_csv(
             f"{self.work_dir}/pred_test.csv",
             sep=",",
@@ -535,7 +578,7 @@ class LoadDumpLightGBM:
                 data[idx1][idx2] = round(class_report[label][metric], 3)
 
         plt.figure(figsize=(10, 10))
-        plt.matshow(data, cmap="coolwarm")
+        plt.matshow(data, cmap="Blues")
         plt.xticks(np.arange(len(metrics)), metrics)
         plt.yticks(np.arange(len(labels)), labels)
         plt.colorbar(cmap="Blues")
@@ -549,7 +592,7 @@ class LoadDumpLightGBM:
         plt.title("Performance Metrics by Class")
         plt.savefig(f"{self.work_dir}/metrics.png")
 
-    def confusion_matrix(self) -> None:
+    def plot_confusion_matrix(self) -> None:
         df_preds = pd.read_csv(
             f"{self.work_dir}/pred_test.csv",
             sep=",",
@@ -557,45 +600,7 @@ class LoadDumpLightGBM:
         )
         y_true = df_preds["output_labels"]
         y_pred = df_preds["predicted_class"]
-        ConfusionMatrixDisplay.from_predictions(y_true, y_pred, cmap="Blues")
-        plt.savefig(f"{self.work_dir}/confusion_matrix_{self.nb_days}_days.png")
-        plt.show()
-
-    def confusion_matrix_with_probabilities(self):
-        df_preds = pd.read_csv(
-            f"{self.work_dir}/pred_test.csv",
-            sep=",",
-            usecols=[
-                "output_labels",
-                "predicted_class",
-                "proba_Driving",
-                "proba_Dump",
-                "proba_Load",
-            ],
-        )
-
-        labels = ["Driving", "Dump", "Load"]
-        avg_probs = np.zeros((len(labels), len(labels)))
-
-        for i, true_label in enumerate(labels):
-            for j, pred_label in enumerate(labels):
-                mask = df_preds["output_labels"] == true_label
-                avg_prob = df_preds.loc[mask, f"proba_{pred_label}"].mean()
-                avg_probs[i, j] = avg_prob
-
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(
-            avg_probs,
-            annot=True,
-            fmt=".2f",
-            cmap="Blues",
-            xticklabels=labels,
-            yticklabels=labels,
-        )
-
-        plt.xlabel("Predicted Labels")
-        plt.ylabel("True Labels")
-        plt.title("Average Predicted Probabilities")
-        plt.tight_layout()
-        plt.savefig(f"{self.work_dir}/average_predicted_probabilities.png")
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ConfusionMatrixDisplay.from_predictions(y_true, y_pred, cmap="Blues", ax=ax)
+        fig.savefig(f"{self.work_dir}/confusion_matrix_{self.nb_days}_days.png")
         plt.show()
