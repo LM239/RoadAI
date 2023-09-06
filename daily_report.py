@@ -54,6 +54,7 @@ class DailyReport:
         self.trips = dataloader.TripsLoader(day, gps_data_dir)
 
         self.productivity = {}
+        self.datetime_intervals = []
 
         self.interactive_map = InteractiveMap(self.trips)
         for machine_id in self.trips._machines.keys():
@@ -90,7 +91,6 @@ class DailyReport:
 
         # Create a list of timestamps throughout day
         current_datetime = first_timestamp
-        self.datetime_intervals = []
 
         # Do not want to look at idle machines overnight
         while current_datetime < last_timestamp and current_datetime.hour < 23:
@@ -177,74 +177,85 @@ class DailyReport:
         # fig.write_html("./data/output_html/idle_timeline.html")
 
     # Function that plot map of position of machines at peak times during day
-    def plot_peak_times(self, threshold: int, static=False):
+    def plot_peak_times(self, nb_of_plots: int, static=False):
         # Forces you to run aggregated_idle_timeline first
         if not len(self.datetime_intervals) > 0:
             self.aggregated_idle_timeline()
 
-        last_val = 0  # Want to avoid plotting similar maps for same idle period
-        plotted = False
-        for i in range(len(self.datetime_intervals)):
+        #Want to sort times
+        # Combine the two lists into a list of tuples
+        idle_list = self.nb_of_idle_machines.copy()
+        time_list = self.datetime_intervals.copy()
+        combined_lists = list(zip(idle_list, time_list))
+
+        # Sort the combined list based on the values in list1
+        sorted_combined_lists = sorted(combined_lists, key=lambda x: x[0], reverse=True)
+
+        # Extract the sorted lists
+        idle_list_sorted = [x[0] for x in sorted_combined_lists]
+        time_list_sorted = [x[1] for x in sorted_combined_lists]
+
+        #Want to plot the threshold highest values
+        for i in range(nb_of_plots):
             list_of_positions = []
             list_of_load_waiting = []
-            if self.nb_of_idle_machines[i] >= threshold and self.nb_of_idle_machines[i] > last_val and not plotted:
-                #plotted = True
-                last_val = self.nb_of_idle_machines[i]
-                # We are at or above threshold. Want to plot position of idle machines
-                time = self.datetime_intervals[i]
-                print("At: ", time)
-                print("Idle machines: ", self.nb_of_idle_machines[i])
-                for machine_id, machine in self.trips._machines.items():
-                    for it in machine.list_of_idle_times:
-                        if it[0].timestamp < time < it[-1].timestamp:
-                            # Assuming its not moving a lot during this interval
-                            list_of_positions.append((it[0].lat, it[0].lon))
-                            # Check if we are waiting for load or dump
-                            # Highest possible value
-                            smallest_time_above = machine.trips[-1].positions[-1].timestamp
-                            waiting_for_load = True
+            time = time_list_sorted[i]
+            print("At: ", time)
+            print("Idle machines: ", idle_list_sorted[i])
+            for machine_id, machine in self.trips._machines.items():
+                for it in machine.list_of_idle_times:
+                    if it[0].timestamp < time < it[-1].timestamp:
+                        # Assuming its not moving a lot during this interval
+                        list_of_positions.append((it[0].lat, it[0].lon))
+                        # Check if we are waiting for load or dump
+                        # Highest possible value
+                        smallest_time_above = machine.trips[-1].positions[-1].timestamp
+                        waiting_for_load = True
 
-                            for lt in [point.timestamp for point in machine.all_loads]:
-                                if it[0].timestamp < lt < smallest_time_above:
-                                    smallest_time_above = lt
-                            for dt in [point.timestamp for point in machine.all_dumps]:
-                                if it[0].timestamp < dt < smallest_time_above:
-                                    smallest_time_above = dt
-                                    waiting_for_load = False
+                        for lt in [point.timestamp for point in machine.all_loads]:
+                            if it[0].timestamp < lt < smallest_time_above:
+                                smallest_time_above = lt
+                        for dt in [point.timestamp for point in machine.all_dumps]:
+                            if it[0].timestamp < dt < smallest_time_above:
+                                smallest_time_above = dt
+                                waiting_for_load = False
 
-                            list_of_load_waiting.append(waiting_for_load)
-                            break
-
-                # Create a map centered at the mean of all coordinates, with heatmap
-                points_center = np.mean(list_of_positions, axis=0)
-                m5 = L.Map(center=(points_center[0], points_center[1]), zoom=12)
-                for k in range(len(list_of_positions)):
-                    if list_of_load_waiting[k]:
-                        load_icon = L.Icon(
-                            icon_url='https://cdn-icons-png.flaticon.com/512/2716/2716797.png', icon_size=[32, 32], icon_anchor=[16, 16])
-                        load_mark = L.Marker(
-                            location=list_of_positions[k], icon=load_icon, rotation_angle=0, rotation_origin='22px 94px')
-                        m5.add_layer(load_mark)
-                    else:
-                        dump_icon = L.Icon(
-                            icon_url='https://cdn-icons-png.flaticon.com/512/1435/1435320.png', icon_size=[32, 32], icon_anchor=[16, 16])
-                        dump_mark = L.Marker(
-                            location=list_of_positions[k], icon=dump_icon, rotation_angle=0, rotation_origin='22px 94px')
-                        m5.add_layer(dump_mark)
-                # Display the map
-                if static:
-                    # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
-                    #text = IHTML(str(time))
-                    m5.save(f'public_data/static_map/peak_idle_map{i}.html', title='PeakIdle')
-                    #m6 = IHTML(filename = f'public_data/static_map/peak_idle_map{time}.html')
-                    #display(m6, text)
-                    display(IFrame(src=f'public_data/static_map/peak_idle_map{i}.html', width=1000, height=600))
-                else:    
-                    display(m5)
-                # m.save('./data/output_html/my_map.html',
-                #       title='PeakTime position and status')
-            else:
-                last_val = 0
+                        list_of_load_waiting.append(waiting_for_load)
+                        break
+            
+            # Create a map centered at the mean of all coordinates, with heatmap
+            points_center = np.mean(list_of_positions, axis=0)
+            m5 = L.Map(center=(points_center[0], points_center[1]), zoom=12)
+            for k in range(len(list_of_positions)):
+                if list_of_load_waiting[k]:
+                    load_icon = L.Icon(
+                        icon_url='https://cdn-icons-png.flaticon.com/512/2716/2716797.png', icon_size=[32, 32], icon_anchor=[16, 16])
+                    load_mark = L.Marker(
+                        location=list_of_positions[k], icon=load_icon, rotation_angle=0, rotation_origin='22px 94px')
+                    m5.add_layer(load_mark)
+                else:
+                    dump_icon = L.Icon(
+                        icon_url='https://cdn-icons-png.flaticon.com/512/1435/1435320.png', icon_size=[32, 32], icon_anchor=[16, 16])
+                    dump_mark = L.Marker(
+                        location=list_of_positions[k], icon=dump_icon, rotation_angle=0, rotation_origin='22px 94px')
+                    m5.add_layer(dump_mark)
+            legend = L.LegendControl({},name=f"Time: {time.strftime('%m/%d/%Y, %H:%M:%S')} \n Idle machines : {idle_list_sorted[i]}")
+            legend.position = "topright"  # Set position
+            m5.add_control(legend)
+            # Display the map
+            if static:
+                # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
+                #text = IHTML(str(time))
+                m5.save(f'public_data/static_map/peak_idle_map{i}.html', title='PeakIdle')
+                #m6 = IHTML(filename = f'public_data/static_map/peak_idle_map{time}.html')
+                #display(m6, text)
+                display(IFrame(src=f'public_data/static_map/peak_idle_map{i}.html', width=1000, height=600))
+            else:    
+                display(m5)
+            # m.save('./data/output_html/my_map.html',
+            #       title='PeakTime position and status')
+        else:
+            last_val = 0
 
     # Function that plots heatmap of all idle times for day
     def plot_idle_heatmap(self, static=False):
