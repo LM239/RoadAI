@@ -537,11 +537,10 @@ class LoadDumpLightGBM:
         fig_fi.savefig(
             f"{self.work_dir_day}/feature_importance_{self.nb_days}_days.png"
         )
-        plt.close(fig_fi)
 
     def plot_learning_curve(self) -> None:
         # Save learning curve as png
-        fig_lc, ax_lc = plt.subplots(figsize=(8, 4))
+        fig_lc, ax_lc = plt.subplots(figsize=(6, 4))
         ax_lc.set_yscale("log")
         get_learning_curve(
             booster=self.booster_record_eval,
@@ -551,7 +550,6 @@ class LoadDumpLightGBM:
         )
         fig_lc.tight_layout()
         fig_lc.savefig(f"{self.work_dir_day}/learning_curve_{self.nb_days}_days.png")
-        plt.close(fig_lc)
 
     def predict_and_save_csv(self) -> None:
         df_testing = pd.read_csv(
