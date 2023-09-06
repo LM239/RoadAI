@@ -254,8 +254,6 @@ class DailyReport:
                 display(m5)
             # m.save('./data/output_html/my_map.html',
             #       title='PeakTime position and status')
-        else:
-            last_val = 0
 
     # Function that plots heatmap of all idle times for day
     def plot_idle_heatmap(self, static=False):
