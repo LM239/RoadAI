@@ -123,7 +123,20 @@
       hull algorithm is used to plot polygons of load and dump regions. The ineractive plot informs on quantity moved
       between regions, the top workers of the day (tons/hr), and total mass moved for each material type.
     </p>
-    <p style="color:red;">Øystein should write about this and add plots.</p>
+    <figure>
+      <iframe src="interact_static_ver.html" width="100%", height="425"></iframe>
+      <p><b>Day Overview, 04-08-2022</b><br>Total mass moved for the day by Truck: 11504.0 t<br>Stone: 11504.0 t, Soil: 
+        0 t, Equipment: 0 t, Other: 0 t<br><b>Top 5 mass transfer zones for the day</b><br>L2->D0: 2153.0 t<br>L4->D2: 
+        1113.0 t<br>L6->D2: 1023.0 t<br>L0->D4: 900.0 t<br>L4->D3: 895.5 t<br><b> Top 3 workers of the day</b><br>
+        <b>Nr.1</b> ID: 30 moved 150.6 t of mass moved per hour<br><b>Nr.2</b> ID: 22 moved 148.2 t of mass moved per 
+        hour<br><b>Nr.3</b> ID: 44 moved 139.2 t of mass moved per hour<br>
+      </p>
+      <figcaption>Figure 3: Static version of interactive map showcasing mass moved between different load and dump 
+        clusters. Click on 'Dx' or 'Lx' markers to display mass moved to/from different clusters. For an interactive 
+        version, launch the <i>daily_report_demo.ipynb</i> notebook.
+      </figcaption>
+    </figure>
+    <link href="textbox.html" rel="import" />
     <h4 style="text-align: left;">Idle time and productivity</h4>
     <p>
       Knowing when, where, and why machines are idle throughout the day can be an important insight when considering
@@ -136,7 +149,7 @@
 
     <figure>
       <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
-      <figcaption>Figure 3: Plot of idle machine throughout the day.</figcaption>
+      <figcaption>Figure 4: Plot of idle machine throughout the day.</figcaption>
     </figure>
     <p>
       There might be many reasons for the machines to be idle. Some drivers might be on a break, others are attending
@@ -147,7 +160,7 @@
     </p>
     <figure>
       <iframe src="my_map.html" width="100%" height="450"></iframe>
-      <figcaption>Figure 4: Map of idle machines at a peak time.</figcaption>
+      <figcaption>Figure 5: Map of idle machines at a peak time.</figcaption>
     </figure>
     <p>
       Finally, we present a heatmap of idle machines for a given day. Collecting all idle positions of all machines for
@@ -157,7 +170,7 @@
     </p>
     <figure>
       <iframe src="heatmap_idle.html" width="100%" height="450"></iframe>
-      <figcaption>Figure 5: Heatmap of idle machines for a given day.</figcaption>
+      <figcaption>Figure 6: Heatmap of idle machines for a given day.</figcaption>
     </figure>
 
 
