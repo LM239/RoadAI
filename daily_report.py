@@ -10,6 +10,8 @@ from helper_functions.interactive_map import InteractiveMap
 from IPython.display import display, IFrame
 import pickle as pkl
 from datetime import datetime
+from tabulate import tabulate
+
 class DailyReport:
     """
     Allows for insight into idle time, mass moved by machine and more.
@@ -376,6 +378,13 @@ class DailyReport:
                 # Show the bar plot
                 fig.show()
 
+    def print_total_productivity(self):
+        tottonnage_dict = {'Stone' : 0, 'Equipment' : 0, 'Soil' : 0, '4' : 0}
+        for key in tottonnage_dict.keys():
+            tottonnage_dict[key] = sum(self.productivity[key].values())
+            #print(f'Average total tonnage of {mass_type} moved per hour for the day: {round(tottonnage, 2)} t/hr')
+        table_data = [[key, round(value,2)] for key, value in tottonnage_dict.items()]
+        print(tabulate(table_data, headers=["Material Type", "Total t/hr"], tablefmt="grid"))
 
 if __name__ == "__main__":
     day = "04-06-2022"  # MM-DD-YYYY

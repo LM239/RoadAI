@@ -19,3 +19,4 @@ lightgbm==4.0.0
 notebook
 nbconvert
 PyPDF2
+tabulate
