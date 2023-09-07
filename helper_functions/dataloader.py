@@ -33,10 +33,10 @@ class TripsLoader:
             lambda row: pd.Series(get_trips(row["TripLogId"])), axis=1
         )
 
-        machine_groups = combined_df.groupby("DumperMachineNumber")
+        machine_groups = combined_df.groupby("DumperMachineId")
 
         # Use groupby on machine to start populating machine basemodels
-        for machine_id in info_df["DumperMachineNumber"].unique():
+        for machine_id in info_df["DumperMachineId"].unique():
             machine_df: pd.DataFrame = machine_groups.get_group(machine_id).reset_index(
                 drop=True
             )

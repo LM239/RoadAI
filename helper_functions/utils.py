@@ -34,16 +34,17 @@ def load_gps_data(date: str, gps_data_directory: str) -> tuple[pd.DataFrame, pd.
     trip_df["Timestamp"] = time_stamp_format1
 
     def index_machine_name(row: pd.Series) -> pd.Series:
-        print("Indexing With DumperMachineName", -
-              MACHINE_NAMES.index(row["DumperMachineName"]))
-        row["DumperMachineNumber"] = - \
-            MACHINE_NAMES.index(row["DumperMachineName"])
+        row["DumperMachineNumber"] = 100 + MACHINE_NAMES.index(row["DumperMachineName"])
         return row
 
-    info_df[info_df['DumperMachineNumber'].isna(
-    )] = info_df[info_df['DumperMachineNumber'].isna()].apply(index_machine_name)
     if 'DumperMachineName' not in info_df:
         info_df['DumperMachineName'] = None
+    if 'DumperMachineNumber' not in info_df:
+        info_df['DumperMachineNumber'] = None
+    info_df[info_df['DumperMachineNumber'].isna(
+    )] = info_df[info_df['DumperMachineNumber'].isna()].apply(index_machine_name, axis=1)
+    
+    info_df['DumperMachineId'] = info_df.pop("DumperMachineNumber") 
 
     return info_df, trip_df
 
