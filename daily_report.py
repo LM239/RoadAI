@@ -54,6 +54,7 @@ class DailyReport:
         self.trips = dataloader.TripsLoader(day, gps_data_dir)
 
         self.productivity = {}
+        self.day = day
         self.datetime_intervals = []
 
         self.interactive_map = InteractiveMap(self.trips)
@@ -272,6 +273,9 @@ class DailyReport:
         # Add markers for each cluster center to the map
         heatmap = L.Heatmap(locations=list_of_idle_positions, radius=10)
         m10.add_layer(heatmap)
+        legend = L.LegendControl({},name=f"Day: {'/'.join(self.day.split('-'))}")
+        legend.position = "topright"  # Set position
+        m10.add_control(legend)
         # Display the map
         display(m10)
         if static:
