@@ -175,12 +175,14 @@
       operational changes. The daily report provides a timeline plot, as can be seen in Figure 3. The red line, named
       Machines in action, illustrates the number of machines having started their day, i.e. have recorded their first
       load of the day. The number of idle machines can be seen by looking at the blue line. This tracks all machines
-      standing still, including machines loading and dumping. Furthermore, one can filter on their status, i.e. are they
-      waiting to load or to dump? We see that the number of idle machines peaks around 09:30 and 13:30.
+      standing still, including machines loading and dumping. Furthermore, one can filter on their status, i.e. are 
+      their next activity expected to be a load or dump? We see that the number of idle machines peaks around 09:30 and 13:30.
     </p>
 
     <figure>
-      <iframe src="idle_timeline.html" width="100%" height="400"></iframe>
+      <div class="iframe-container">
+        <iframe class="responsive-iframe" src="idle_timeline.html"></iframe>
+      </div>
       <figcaption>Figure 4: Plot of idle machine throughout the day.</figcaption>
     </figure>
     <p>

@@ -29,8 +29,8 @@ class DailyReport:
     datetime_intervals: List with interval of times where we have active machines
     nb_of_idle_machines: nb_of_idle_machines
     nb_of_machines_in_action: List of number of machines in action
-    nb_of_idle_waiting_for_load: List of number of idle machines waiting to load
-    nb_of_idle_waiting_for_dump: List of number of idle machines waiting to dump
+    nb_of_idle_waiting_for_load: List of number of idle machines whose next activity is load
+    nb_of_idle_waiting_for_dump: List of number of idle machines whose next activity is dump
 
     Methods
     -------
@@ -159,14 +159,14 @@ class DailyReport:
             x=self.datetime_intervals,
             y=self.nb_of_idle_waiting_for_load,
             mode='markers+lines',
-            name='Waiting for load'
+            name='Next activity is load'
         ))
 
         fig.add_trace(go.Scatter(
             x=self.datetime_intervals,
             y=self.nb_of_idle_waiting_for_dump,
             mode='markers+lines',
-            name='Waiting for dump'
+            name='Next activity is dump'
         ))
 
         fig.update_layout(
@@ -178,7 +178,7 @@ class DailyReport:
         )
 
         fig.show()
-        # fig.write_html("./data/output_html/idle_timeline.html")
+        fig.write_html("./data/output_html/idle_timeline.html")
 
     def add_image_overlay(self, m):
         file_to_bounds = {}
@@ -282,11 +282,8 @@ class DailyReport:
             self.add_image_overlay(m=m5)
             # Display the map
             if static:
-                # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
-                #text = IHTML(str(time))
+                # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT
                 m5.save(f'public_data/static_map/peak_idle_map{i}.html', title='PeakIdle')
-                #m6 = IHTML(filename = f'public_data/static_map/peak_idle_map{time}.html')
-                #display(m6, text)
                 display(IFrame(src=f'public_data/static_map/peak_idle_map{i}.html', width=1000, height=600))
             else:    
                 display(m5)
@@ -317,8 +314,7 @@ class DailyReport:
         # Display the map
         display(m10)
         if static:
-            # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
-            #text = IHTML(str(time))
+            # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT
             m10.save('public_data/static_map/peak_idle_heatmap.html', title='PeakIdle')
             display(IFrame(src = 'public_data/static_map/peak_idle_heatmap.html', width=1000, height=600))
         else:    
@@ -382,16 +378,5 @@ class DailyReport:
         tottonnage_dict = {'Stone' : 0, 'Equipment' : 0, 'Soil' : 0, '4' : 0}
         for key in tottonnage_dict.keys():
             tottonnage_dict[key] = sum(self.productivity[key].values())
-            #print(f'Average total tonnage of {mass_type} moved per hour for the day: {round(tottonnage, 2)} t/hr')
         table_data = [[key, round(value,2)] for key, value in tottonnage_dict.items()]
         print(tabulate(table_data, headers=["Material Type", "Total t/hr"], tablefmt="grid"))
-
-if __name__ == "__main__":
-    day = "04-06-2022"  # MM-DD-YYYY
-    choosen_machine_type = 'Truck'  # Truck | Dumper
-    # Here we test our function
-    # A bigger demonstration can be found in daily_report_demo notebook
-    daily_report = DailyReport(day)
-    daily_report.compute_idle_times(choosen_machine_type)
-    daily_report.aggregated_idle_timeline()
-    daily_report.plot_aggregated_idle_timeline()
