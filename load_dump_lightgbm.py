@@ -438,16 +438,11 @@ class LoadDumpLightGBM:
 
         # Make sure original console behaviour is stored
         # Pandas raises message for day 03-10-2022
-        original_stdout = sys.stdout
-        original_stderr = sys.stderr
+
         for day in tqdm(
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
-            if day == "03-10-2022":
-                # Redirect stdout and stderr to discard output for this day as pandas
-                # Raises warning about row type
-                sys.stdout = open(os.devnull, "w")
-                sys.stderr = open(os.devnull, "w")
+            print(day)
 
             trip = dataloader.TripsLoader(day)
             for _, machine in trip._machines.items():
@@ -477,13 +472,6 @@ class LoadDumpLightGBM:
                         by="DateTime"
                     )
                     df_testing_all = pd.concat([df_testing_all, df_testing], axis=0)
-
-            if day == "03-10-2022":
-                # Return to original console behaviour
-                sys.stdout.close()
-                sys.stderr.close()
-                sys.stdout = original_stdout
-                sys.stderr = original_stderr
 
             df_training_all.dropna(inplace=True)
             df_testing_all.dropna(inplace=True)
