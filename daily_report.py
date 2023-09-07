@@ -8,8 +8,8 @@ import ipyleaflet as L
 import numpy as np
 from helper_functions.interactive_map import InteractiveMap
 from IPython.display import display, IFrame
-
-
+import pickle as pkl
+from datetime import datetime
 class DailyReport:
     """
     Allows for insight into idle time, mass moved by machine and more.
@@ -56,6 +56,7 @@ class DailyReport:
         self.productivity = {}
         self.day = day
         self.datetime_intervals = []
+        self.file_to_bounds_path = 'public_data/png_folder/file_to_bounds.pkl'
 
         self.interactive_map = InteractiveMap(self.trips)
         for machine_id in self.trips._machines.keys():
@@ -177,6 +178,39 @@ class DailyReport:
         fig.show()
         # fig.write_html("./data/output_html/idle_timeline.html")
 
+    def add_image_overlay(self, m):
+        file_to_bounds = {}
+        with open(self.file_to_bounds_path, 'rb') as handle:
+            file_to_bounds = pkl.load(handle)
+
+        input_date = datetime.strptime(self.trips.day, '%m-%d-%Y')
+
+        filenames_skaret = [e for e in file_to_bounds.keys() if e.split('_')[
+            2] == 'Skaret-Orthomosaic.png']
+        filenames_nordlandsdalen = [e for e in file_to_bounds.keys() if e.split('_')[
+            2] == 'Nordlandsdalen-Orthomosaic.png']
+        skaret_dates = [datetime.strptime(
+            e.split('_')[1], '%y%m%d') for e in filenames_skaret]
+        nordlandsdalen_dates = [datetime.strptime(
+            e.split('_')[1], '%y%m%d') for e in filenames_nordlandsdalen]
+        skaret_closest_date = self.interactive_map.find_closest_date(input_date, skaret_dates)
+        nordlandsdalen_closest_date = self.interactive_map.find_closest_date(
+            input_date, nordlandsdalen_dates)
+        date_string_skaret = 'P07_' + \
+            skaret_closest_date.strftime('%y%m%d') + '_Skaret-Orthomosaic.png'
+        date_string_nordlandsdalen = 'P08_' + \
+            nordlandsdalen_closest_date.strftime(
+                '%y%m%d') + '_Nordlandsdalen-Orthomosaic.png'
+        path = 'https://raw.githubusercontent.com/oyste/image_host/main/docs/assets/'
+
+        # add skaret og nordlandsdalen overlay
+        im_overlay_skaret = L.ImageOverlay(
+            url=path + date_string_skaret, bounds=file_to_bounds[date_string_skaret])
+        im_overlay_nordlandsdalen = L.ImageOverlay(
+            url=path + date_string_nordlandsdalen, bounds=file_to_bounds[date_string_nordlandsdalen])
+        m.add_layer(im_overlay_skaret)
+        m.add_layer(im_overlay_nordlandsdalen)
+    
     # Function that plot map of position of machines at peak times during day
     def plot_peak_times(self, nb_of_plots: int, static=False):
         # Forces you to run aggregated_idle_timeline first
@@ -243,6 +277,7 @@ class DailyReport:
             legend = L.LegendControl({},name=f"Time: {time.strftime('%m/%d/%Y, %H:%M:%S')} \n Idle machines : {idle_list_sorted[i]}")
             legend.position = "topright"  # Set position
             m5.add_control(legend)
+            self.add_image_overlay(m=m5)
             # Display the map
             if static:
                 # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT IWITH CURRENT TEXT
@@ -276,6 +311,7 @@ class DailyReport:
         legend = L.LegendControl({},name=f"Day: {'/'.join(self.day.split('-'))}")
         legend.position = "topright"  # Set position
         m10.add_control(legend)
+        self.add_image_overlay(m10)
         # Display the map
         display(m10)
         if static:
