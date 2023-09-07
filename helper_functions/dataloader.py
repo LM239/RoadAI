@@ -66,9 +66,9 @@ class TripsLoader:
                     )
                     trips.append(trip)
                 except Exception:
-                    print("Could not add row, row was type: ", type(
-                        row["route"]), " but expected ndarray.")
-
+                    #print("Could not add row, row was type: ", type(
+                    #    row["route"]), " but expected ndarray.")
+                    pass
             # Save as a Machine model
             machine = Machine(machine_type=machine_type,
                               machine_id=machine_id, machine_name=machine_name, trips=trips)
