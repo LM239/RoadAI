@@ -91,12 +91,44 @@
       difficult to spot the exact point the driver records an activity. Therefore, we argue that one could merge
       consecutive points and base our classification on that. This provide the classification with robustness and
       generalizes better between drivers and machines.
+      <br>
+      <br>
+      The machine learning algorithm employed in this project is Light Gradient-Boosting Machine (LightGBM). LightGBM is
+      an ensemble framework that uses decision trees as weak learners and can tackle regression, ranking, and
+      classification tasks. What sets LightGBM apart from other gradient boosting algorithms like XGBoost and CatBoost
+      are its distinctive features - Gradient-based One-Side Sampling (GOSS) and Exclusive Feature Bundling (EFB). These
+      features effectively reduce the size of the data set and the number of utilized features, all while maintaining
+      the same level of accuracy for the majority of tasks. As a result, LightGBM delivers exceptional time efficiency.
+      <br>
+      <br>
+      In the context of this work, the LightGBM model is trained on a dataset derived from GPS data. This enriched
+      dataset includes a variety of features for each timestamp, such as speed (in m/s), acceleration (in m/s^2), and
+      movement-related variables like changes in latitude/longitude and speed in both north/south and east/west
+      directions. The model's objective is to predict machine activities- specifically, whether a truck or a dumper is
+      driving, dumping, or loading at any given time.
+      <br>
+      <br>
+      The model operates by first segmenting the data for each machine across a single day and then splitting it into an
+      80/20 ratio for training and testing. This segmentation ensures that the model makes predictions on all relevant
+      chunks of data, not neglecting randomly selected routes.
+      <br>
+      <br>
+      The algorithm offers the flexibility to predict either based on merged timestamps or unique data points. While
+      predicting on merged timestamps tends to yield higher accuracy, it compromises the granularity of the predictions,
+      making it more challenging to pinpoint the exact timing of driving, dumping, or loading events. Thus, the user has
+      flexibility to choose the level of detail they wish to achieve in the predictions.
+      <br>
+      <br>
+      It has been observed that the model's predictive accuracy significantly improves when trained on a larger dataset.
+      However, this advantage comes at the cost of increased data loading and training times, which tend to scale
+      linearly with the size of the dataset.
+      <br>
+      <br>
+      In summary, this LightGBM-based machine learning algorithm offers a robust and time-efficient solution for
+      predicting machine activities, with customizable options to suit specific user needs.
+
+
     </p>
-    <p style="color:red;">Mats should write about preprocessing, covariates and plots.</p>
-    <p style="color:red;">We should also say something about results of dumpers, not only trucks.</p>
-    <p style="color:red;">The below plots are for 25 days of training data and grouping of 5 and 5 timestamps. Results
-      are accuracy of 99% for driving, and 88% for both dumping and loading. Accuracy is good, but precision a bigger
-      problem. Should discuss this.</p>
     <img src="learning_curve_25_days_5_group_size.png">
     <img src="confusion_matrix.png">
 

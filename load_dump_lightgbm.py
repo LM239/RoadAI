@@ -442,8 +442,6 @@ class LoadDumpLightGBM:
         for day in tqdm(
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
-            print(day)
-
             trip = dataloader.TripsLoader(day)
             for _, machine in trip._machines.items():
                 if machine.machine_type == self.machine_type:
