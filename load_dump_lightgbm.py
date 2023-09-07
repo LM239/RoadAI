@@ -315,7 +315,7 @@ def get_learning_curve(
 
 
 class CustomLightgbmParams:
-    def __init__(self, metric="multi_logloss", n_estimators=2000):
+    def __init__(self, metric="multi_logloss", n_estimators=10000):
         self.metric = metric
         self.n_estimators = n_estimators
 
@@ -447,10 +447,15 @@ class LoadDumpLightGBM:
                 if machine.machine_type == self.machine_type:
                     automated_for_given_machine = PrepareMachineData(machine)
                     automated_for_given_machine.get_speed_and_acceleration()
-
-                    df_vehicle = automated_for_given_machine.construct_df_for_training(
-                        self.group_size
-                    )
+                    try:
+                        df_vehicle = (
+                            automated_for_given_machine.construct_df_for_training(
+                                self.group_size
+                            )
+                        )
+                    except IndexError:
+                        # if a trip only has one timestamp, do not use this trip
+                        continue
 
                     X, y = (
                         df_vehicle.drop(["output_labels"], axis=1),
@@ -486,7 +491,7 @@ class LoadDumpLightGBM:
                 index=False,
             )
 
-    def fit_model(self, stopping_rounds: int = 2) -> None:
+    def fit_model(self, stopping_rounds: int = 50) -> None:
         df_training = pd.read_csv(f"{self.work_dir_day}/{self.training_data_name}.csv")
 
         X_train, X_val, y_train, y_val = split_data_into_training_and_validation(
@@ -523,7 +528,9 @@ class LoadDumpLightGBM:
         # Save training time and validaton data error at termination
         with open(f"{self.work_dir}/track_results_days_and_machines.txt", "a") as f:
             f.write(
-                f"...\nTraining time: {round((time.perf_counter() - t0),3)} s\n"
+                f"\n\n Early stopping: {stopping_rounds}\n"
+                f"Number of iterations: {self.lgbm_custom_params.n_estimators} \n"
+                f"Training time: {round((time.perf_counter() - t0),3)} s\n"
                 f"Data set path: {Path(self.work_dir_day) / self.training_data_name}.\n"
                 f"Validation multi-logloss at termination: {round(self.booster_record_eval['Val']['multi_logloss'][-1],5)}\n"
                 f"Machine type: {self.machine_type} \n"

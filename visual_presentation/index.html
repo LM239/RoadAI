@@ -45,7 +45,7 @@
       four main components in the data set; GPS data, machine data (AEMP), vibration data, and drone photos.
     </p>
     <h3>
-      Our Approach
+      NoDig's Approach
     </h3>
     <p class="left-aligned-text">
       Team NoDig's approach has been founded on a desire to develop feasible tools for automated decision support.
@@ -60,77 +60,107 @@
       Part one: Data Preprocessing
     </h3>
     <p class="left-aligned-text">
-      GPS data has been our main source for input to each algorithm. From the initial CSV files we have created
-      intuitive and usable classes that allows for analysis and machine learning. It is also simple to add new features
-      (i.e. covariates) to the classes. The parts that follow will be built from the original GPS data. Attemps to
-      include machine and vibration data has been made, but with unreliable results. We will instead provide remarks and
-      brief discussions where we would have liked to make use of the mentioned data.
+      The primary data source for the algorithms is GPS information. Initial CSV files have been transformed into
+      user-friendly, extensible classes designed for both analysis and machine learning applications. These classes
+      offer the flexibility to easily incorporate additional features. Subsequent sections of this work
+      rely solely on this refined GPS data. While attempts to integrate machine and vibration data were made, the
+      outcomes were inconsistent. Points in the discussion will highlight instances where the
+      incorporation of additional data sets would have been beneficial.
     </p>
     <h3>
-      Part two: Automatic Load and Dump Detection with LightGBM
+      Part two: Automatic Load and Dump Detection with Light Gradient-Boosting Machine
+    </h3>
+    <h3>
+      Introduction
     </h3>
     <p class="left-aligned-text">
-      Loading and dumping of trucks and dumpers has been performed manually by drivers in our data. There appear to be
-      varying definitions of when loading and dumping occurs exactly. At the same time, a driver can forget to report
-      an activity, leaving mistakes and reducing overall data quality. In the long term, one should aim to reduce the
-      need for manual registration of data. This should improve data consistency and ultimately enhance the potential of
-      any analysis or model that is founded on the data. It will also reduce the driver's need to interact with the
-      device during trips, which in turn should have a positive effect on overall efficiency.
+
+      In the GPS data set, loading and dumping activities for trucks and dumpers are manually recorded by drivers. This
+      manual
+      method introduces variations in defining what constitutes a loading or dumping event and is susceptible to human
+      error, affecting data quality. To enhance analytical outcomes and driver efficiency, automating data registration
+      should be a long-term goal. The model employed in this work therefor attempts to predict the event at any given
+      time
+      - a classification problem with "Driving", "Loading" and "Dumping" as target labels.
       <br>
       <br>
-      We assume there is a continuous stream of data from the device in some machine. We do not make any assumptions
-      about the frequency of these recored points, but assume that every point can be classified as "Driving", "Loading"
-      or "Dumping". Our aim has been to classify each point as it has come through, on the basis of available data up
-      until that given point. There is, by definition, one single loading point and one single dumping point per trip.
-      The rest of the recordings are considered to be "driving" points. The number of such points varies per trip, but
-      we typically observe more than 100 and less than 1000 points.
+      The dataset is assumed to feature a continuous stream of data points from each machine's device. While the
+      frequency of these points is inconsistent, each is categorized as either "Driving," "Loading," or "Dumping." The
+      objective is real-time classification based on the cumulative data up to each point. By definition, a single trip
+      comprises one loading and one dumping event, with the remainder categorized as "driving."
       <br>
       <br>
-      As previously mentioned, the drivers seem to register a dump and load at various times, e.g. when stopping to
-      load, or when finished loading. Individual differences between the drivers, coupled with GPS inaccuracy makes it
-      difficult to spot the exact point the driver records an activity. Therefore, we argue that one could merge
-      consecutive points and base our classification on that. This provide the classification with robustness and
-      generalizes better between drivers and machines.
-      <br>
-      <br>
+      Given the variations in driver behavior and potential GPS inaccuracies, identifying exact moments of loading or
+      dumping is challenging. Therefore, an approach that consolidates consecutive points for classification is
+      recommended if one can afford the trade-off in resolution, i. e. having a larger timeframe where the predicted
+      event
+      occur. This enhances model robustness and facilitates
+      generalization across different drivers and machines.
+
+    <h3>
+      The Machine Learning Algorithm
+    </h3>
+    <p class="left-aligned-text">
       The machine learning algorithm employed in this project is Light Gradient-Boosting Machine (LightGBM). LightGBM is
       an ensemble framework that uses decision trees as weak learners and can tackle regression, ranking, and
       classification tasks. What sets LightGBM apart from other gradient boosting algorithms like XGBoost and CatBoost
       are its distinctive features - Gradient-based One-Side Sampling (GOSS) and Exclusive Feature Bundling (EFB). These
       features effectively reduce the size of the data set and the number of utilized features, all while maintaining
       the same level of accuracy for the majority of tasks. As a result, LightGBM delivers exceptional time efficiency.
-      <br>
-      <br>
-      In the context of this work, the LightGBM model is trained on a dataset derived from GPS data. This enriched
-      dataset includes a variety of features for each timestamp, such as speed (in m/s), acceleration (in m/s^2), and
+      More about this algorithm can be found in the developers' whitepaper <a
+        href="https://proceedings.neurips.cc/paper/6907-lightgbm-a-highly-efficient-gradient-boosting-decision-tree.pdf"
+        target="_blank">LightGBM whitepaper</a>.
+    </p>
+
+    <h3>
+      Data Pre-processing
+    </h3>
+    <p class="left-aligned-text">
+      The LightGBM model was trained on a dataset derived from GPS data. This enriched
+      dataset included a variety of features for each timestamp, such as speed, acceleration, and
       movement-related variables like changes in latitude/longitude and speed in both north/south and east/west
-      directions. The model's objective is to predict machine activities- specifically, whether a truck or a dumper is
-      driving, dumping, or loading at any given time.
+      directions.
       <br>
       <br>
-      The model operates by first segmenting the data for each machine across a single day and then splitting it into an
-      80/20 ratio for training and testing. This segmentation ensures that the model makes predictions on all relevant
+      The model proceeded by first segmenting the data for each machine across a single day and then splitting it into
+      an
+      80/20 ratio for training and testing. This segmentation ensured that the model made predictions on all relevant
       chunks of data, not neglecting randomly selected routes.
-      <br>
-      <br>
-      The algorithm offers the flexibility to predict either based on merged timestamps or unique data points. While
-      predicting on merged timestamps tends to yield higher accuracy, it compromises the granularity of the predictions,
-      making it more challenging to pinpoint the exact timing of driving, dumping, or loading events. Thus, the user has
-      flexibility to choose the level of detail they wish to achieve in the predictions.
-      <br>
-      <br>
+    </p>
+
+    <h3>
+      Results
+    </h3>
+    <p class="left-aligned-text">
       It has been observed that the model's predictive accuracy significantly improves when trained on a larger dataset.
       However, this advantage comes at the cost of increased data loading and training times, which tend to scale
-      linearly with the size of the dataset.
-      <br>
-      <br>
-      In summary, this LightGBM-based machine learning algorithm offers a robust and time-efficient solution for
-      predicting machine activities, with customizable options to suit specific user needs.
-
+      linearly with the size of the dataset. The algorithm features intriguing results based on metrics such as
+      precision,
+      recall and F1-score. The subsequent confusion matrices display the results of training the model on the entire set
+      of available GPS data, resulting in a data set containing over one million data points. In this model
+      configuration, five
+      timestamps were consolidated into a single data point. For furter information regarding the set of hyperparameters
+      and features employed in this model, please navigate to the top bar and find the Notebook
+      (load_dump_lightgbm_demo.ipynb).
+    </p>
 
     </p>
-    <img src="learning_curve_25_days_5_group_size.png">
-    <img src="confusion_matrix.png">
+    <figure>
+      <iframe src="statistics_ES50_10k_iter.png" width="100%" , height="600"></iframe>
+
+      <figcaption>Figure 1: Confusion matrix with metrics
+      </figcaption>
+    </figure>
+
+    <figure>
+      <iframe src="confusion_matrix_ES50_10k_iter.png" width="100%" , height="600"></iframe>
+
+      <figcaption>Figure 2: Confusion matrix
+      </figcaption>
+    </figure>
+
+    <!-- <img src="statistics_ES50_10k_iter.png">
+    <img src="confusion_matrix_ES50_10k_iter.png"> -->
 
     <h3>
       Part three: Daily Report
@@ -175,8 +205,9 @@
       operational changes. The daily report provides a timeline plot, as can be seen in Figure 3. The red line, named
       Machines in action, illustrates the number of machines having started their day, i.e. have recorded their first
       load of the day. The number of idle machines can be seen by looking at the blue line. This tracks all machines
-      standing still, including machines loading and dumping. Furthermore, one can filter on their status, i.e. are 
-      their next activity expected to be a load or dump? We see that the number of idle machines peaks around 09:30 and 13:30.
+      standing still, including machines loading and dumping. Furthermore, one can filter on their status, i.e. are
+      their next activity expected to be a load or dump? We see that the number of idle machines peaks around 09:30 and
+      13:30.
     </p>
 
     <figure>
