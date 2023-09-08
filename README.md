@@ -44,8 +44,8 @@ Or
 # Notebooks
 - Automated load and dump detection with LightGBM
   - [PDF](https://lm239.github.io/RoadAI/load_dump_lightgbm_demo.pdf)
-  - [HTML](https://lm239.github.io/RoadAI/load_dump_lightgbm_demo) (Recommended)
-  - [Code](https://github.com/LM239/RoadAI/blob/main/load_dump_lightgbm_demo.ipynb) (Recommended)
+  - [HTML](https://lm239.github.io/RoadAI/load_dump_lightgbm_demo)
+  - [Code](https://github.com/LM239/RoadAI/blob/main/load_dump_lightgbm_demo.ipynb)
 - Daily report
   - [PDF](https://lm239.github.io/RoadAI/daily_report_demo.pdf)
   - [HTML](https://lm239.github.io/RoadAI/daily_report_demo) (Recommended)
