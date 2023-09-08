@@ -309,8 +309,8 @@ def get_learning_curve(
         metric=metric,
         ax=ax,
         grid=True,
-        title=f"Learning curve for dataset: {dataset}",
-        ylabel="Multi logloss",
+        title=f"Learning curve: {dataset}",
+        ylabel="Multi-logloss",
     )
 
 
@@ -557,7 +557,7 @@ class LoadDumpLightGBM:
             booster=self.booster_record_eval,
             metric=self.lgbm_custom_params.metric,
             ax=ax_lc,
-            dataset=f"{self.training_data_name}",
+            dataset=f"{self.nb_days} days, starting at day {self.starting_from}",
         )
         fig_lc.tight_layout()
         fig_lc.savefig(f"{self.work_dir_day}/learning_curve.png")
@@ -602,12 +602,12 @@ class LoadDumpLightGBM:
 
         # assuming labels are keys in class_report with metrics as values
         labels = ["Driving", "Dump", "Load"]
-        metrics = ["precision", "recall", "f1-score"]
+        metrics = ["Precision", "Recall", "F1-score"]
         data = np.zeros((len(labels), len(metrics)))
 
         for idx1, label in enumerate(labels):
             for idx2, metric in enumerate(metrics):
-                data[idx1][idx2] = round(class_report[label][metric], 3)
+                data[idx1][idx2] = round(class_report[label][metric.lower()], 3)
 
         fig, ax = plt.subplots(figsize=(6, 6))
         plt.matshow(data, cmap="Blues", fignum=0)  # plot in 'ax'
@@ -619,8 +619,8 @@ class LoadDumpLightGBM:
             for j in range(len(metrics)):
                 plt.text(j, i, str(data[i, j]), va="center", ha="center")
 
-        plt.xlabel("Metrics")
-        plt.ylabel("Labels")
+        # plt.xlabel("Metrics")
+        # plt.ylabel("Labels")
         plt.tight_layout()
 
         plt.savefig(f"{self.work_dir_day}/statistics.png")
