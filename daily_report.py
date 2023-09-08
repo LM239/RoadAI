@@ -237,8 +237,6 @@ class DailyReport:
             list_of_positions = []
             list_of_load_waiting = []
             time = time_list_sorted[i]
-            print("At: ", time)
-            print("Idle machines: ", idle_list_sorted[i])
             for machine_id, machine in self.trips._machines.items():
                 for it in machine.list_of_idle_times:
                     if it[0].timestamp < time < it[-1].timestamp:
@@ -312,7 +310,6 @@ class DailyReport:
         m10.add_control(legend)
         self.add_image_overlay(m10)
         # Display the map
-        display(m10)
         if static:
             # STATIC VERSION OF INTERACTIVE MAP FOR HTML OUTPUT
             m10.save('public_data/static_map/peak_idle_heatmap.html', title='PeakIdle')
