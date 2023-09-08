@@ -24,10 +24,11 @@ A GitHub repository can be found [here](https://lm239.github.io/RoadAI/visual_pr
 # Notebooks
 
 - PDF
-  - Kommer!
+  - [Automated load and dump detection with LightGBM](https://lm239.github.io/RoadAI/load_dump_lightgbm_demo.pdf)
+  - [Daily report](https://lm239.github.io/RoadAI/daily_report_demo.pdf)
 - HTML
   - [Automated load and dump detection with LightGBM](https://lm239.github.io/RoadAI/load_dump_lightgbm_demo)
   - [Daily report](https://lm239.github.io/RoadAI/daily_report_demo)
 - Code
-  - [Automated load and dump detection with LightGBM](load_dump_lightgbm_demo.ipynb)
-  - [Daily report](daily_report_demo.ipynb)
+  - [Automated load and dump detection with LightGBM](https://github.com/LM239/RoadAI/blob/main/load_dump_lightgbm_demo.ipynb)
+  - [Daily report](https://github.com/LM239/RoadAI/blob/main/daily_report_demo.ipynb)
