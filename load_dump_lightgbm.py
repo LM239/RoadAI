@@ -598,32 +598,31 @@ class LoadDumpLightGBM:
         )
         y_true = df_preds["output_labels"]
         y_pred = df_preds["predicted_class"]
-        class_report: dict = classification_report(y_true, y_pred, output_dict=True)  # type: ignore
+        metrics_dict: dict = classification_report(y_true, y_pred, output_dict=True)  # type: ignore
 
-        # assuming labels are keys in class_report with metrics as values
-        labels = ["Driving", "Dump", "Load"]
-        metrics = ["Precision", "Recall", "F1-score"]
-        data = np.zeros((len(labels), len(metrics)))
+        labels = []
+        precision = []
+        recall = []
+        f1_score = []
 
-        for idx1, label in enumerate(labels):
-            for idx2, metric in enumerate(metrics):
-                data[idx1][idx2] = round(class_report[label][metric.lower()], 3)
+        # Loop only through the relevant labels
+        for label in ["Driving", "Dump", "Load"]:
+            metric_values = metrics_dict[label]
+            labels.append(label)
+            precision.append(metric_values["precision"])
+            recall.append(metric_values["recall"])
+            f1_score.append(metric_values["f1-score"])
 
-        fig, ax = plt.subplots(figsize=(6, 6))
-        plt.matshow(data, cmap="Blues", fignum=0)  # plot in 'ax'
-        plt.xticks(np.arange(len(metrics)), metrics)
-        plt.yticks(np.arange(len(labels)), labels)
-        plt.colorbar(cmap="Blues")
-
-        for i in range(len(labels)):
-            for j in range(len(metrics)):
-                plt.text(j, i, str(data[i, j]), va="center", ha="center")
-
-        # plt.xlabel("Metrics")
-        # plt.ylabel("Labels")
-        plt.tight_layout()
-
-        plt.savefig(f"{self.work_dir_day}/statistics.png")
+        # Creating the DataFrame
+        df_metrics = pd.DataFrame(
+            {
+                "Label": labels,
+                "Precision": precision,
+                "Recall": recall,
+                "F1-Score": f1_score,
+            }
+        )
+        print(df_metrics)
 
     def plot_confusion_matrix(self) -> None:
         df_preds = pd.read_csv(
