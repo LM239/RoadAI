@@ -29,7 +29,7 @@ Team NoDig's code for the RoadAI competition.
 
 # Visual presentation
 
-One can find the visual presentation [here](https://lm239.github.io/RoadAI/visual_presentation/).
+- [HTML](https://lm239.github.io/RoadAI/visual_presentation/)
 # Notebooks
 
 - PDF
