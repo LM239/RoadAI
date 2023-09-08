@@ -20,7 +20,7 @@ from sklearn.metrics import (
 )
 from typing import Literal
 from helper_functions.schemas import Position
-import sys
+from prettytable import PrettyTable
 
 
 class Stats(BaseModel):
@@ -600,7 +600,9 @@ class LoadDumpLightGBM:
         y_pred = df_preds["predicted_class"]
         metrics_dict: dict = classification_report(y_true, y_pred, output_dict=True)  # type: ignore
 
-        labels = []
+        # Initialize the PrettyTable
+        table = PrettyTable()
+        table.field_names = ["Label", "Precision", "Recall", "F1-Score"]
         precision = []
         recall = []
         f1_score = []
@@ -608,21 +610,13 @@ class LoadDumpLightGBM:
         # Loop only through the relevant labels
         for label in ["Driving", "Dump", "Load"]:
             metric_values = metrics_dict[label]
-            labels.append(label)
-            precision.append(metric_values["precision"])
-            recall.append(metric_values["recall"])
-            f1_score.append(metric_values["f1-score"])
-
-        # Creating the DataFrame
-        df_metrics = pd.DataFrame(
-            {
-                "Label": labels,
-                "Precision": precision,
-                "Recall": recall,
-                "F1-Score": f1_score,
-            }
-        )
-        print(df_metrics)
+            precision = metric_values["precision"]
+            recall = metric_values["recall"]
+            f1_score = metric_values["f1-score"]
+            table.add_row(
+                [label, f"{precision:.4f}", f"{recall:.4f}", f"{f1_score:.4f}"]
+            )
+        print(table)
 
     def plot_confusion_matrix(self) -> None:
         df_preds = pd.read_csv(

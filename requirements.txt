@@ -20,3 +20,4 @@ notebook
 nbconvert
 PyPDF2
 tabulate
+prettytable
