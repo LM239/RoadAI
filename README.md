@@ -35,8 +35,8 @@ Or
 
 # Article submitted to Nordic Machine Intelligence (NMI)
 
-- [PDF](https://nrk.no)
-- [Tex file](https://vg.no)
+- [PDF](https://lm239.github.io/RoadAI/journal_paper_RoadAI_team_NODIG.pdf)
+- [Tex file](https://github.com/LM239/RoadAI/blob/main/journal_paper_RoadAI_team_NODIG.zip)
 
 # Visual presentation
 
