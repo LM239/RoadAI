@@ -78,23 +78,22 @@
       manual
       method introduces variations in defining what constitutes a loading or dumping event and is susceptible to human
       error, affecting data quality. To enhance analytical outcomes and driver efficiency, automating data registration
-      should be a long-term goal. The model employed in this work therefor attempts to predict the event at any given
+      should be a long-term goal. The model employed in this work, therefore, attempts to predict the event at any given
       time
       - a classification problem with "Driving", "Loading" and "Dumping" as target labels.
       <br>
       <br>
       The dataset is assumed to feature a continuous stream of data points from each machine's device. While the
       frequency of these points is inconsistent, each is categorized as either "Driving," "Loading," or "Dumping." The
-      objective is real-time classification based on the cumulative data up to each point. By definition, a single trip
+      objective is a real-time classification based on the cumulative data up to each point. By definition, a single
+      trip
       comprises one loading and one dumping event, with the remainder categorized as "driving."
       <br>
       <br>
       Given the variations in driver behavior and potential GPS inaccuracies, identifying exact moments of loading or
       dumping is challenging. Therefore, an approach that consolidates consecutive points for classification is
-      recommended if one can afford the trade-off in resolution, i. e. having a larger timeframe where the predicted
-      event
-      occur. This enhances model robustness and facilitates
-      generalization across different drivers and machines.
+      recommended if one can afford the trade-off in resolution, i.e. having a larger timeframe where the predicted
+      event occurs. This enhances model robustness and facilitates generalization across different drivers and machines.
 
     <h3>
       The Machine Learning Algorithm
@@ -134,12 +133,12 @@
       It has been observed that the model's predictive accuracy significantly improves when trained on a larger dataset.
       However, this advantage comes at the cost of increased data loading and training times, which tend to scale
       linearly with the size of the dataset. The algorithm features intriguing results based on metrics such as
-      precision,
-      recall and F1-score. The subsequent confusion matrices display the results of training the model on the entire set
+      precision, recall. and F1-score. The subsequent confusion matrices display the results of training the model on
+      the entire set
       of available GPS data, resulting in a data set containing over one million data points. In this model
-      configuration, five
-      timestamps were consolidated into a single data point. For furter information regarding the set of hyperparameters
-      and features employed in this model, please navigate to the top bar and find the Notebook
+      configuration, five timestamps were consolidated into a single data point. For further information regarding the
+      set of
+      hyperparameters and features employed in this model, please navigate to the top bar and find the Notebook
       (load_dump_lightgbm_demo.ipynb).
     </p>
 
@@ -165,24 +164,27 @@
       Part three: Daily Report
     </h3>
     <p class="left-aligned-text">
-      Taking advantage of the avilable GPS data, mass quantities, and type of mass moved, we have developed a report
+      Taking advantage of the available GPS data, mass quantities, and type of mass moved, we have developed a report
       displaying the daily progress at the construction site. The report includes an interactive plot of mass moved,
       idle time statistics, and productivity information per machine per material type. The report is generated
       automatically for a chosen day.
       <br>
       <br>
       The daily report is meant to serve as a proof of concept of what could be deployed to an analytics and interactive
-      visualization web application. The solution could be hosted at popular services, such as Tableau, Grafana or Power
-      BI. In this sense, it is not going to be an algorithm that directly proposes solutions, but rather enable insights
-      into how machines operates, both at an individual and group level. We look closer at two main components of the
+      visualization web application. The solution could be hosted at popular services, such as Tableau, Grafana, or
+      Power
+      BI. In this sense, it is not going to be an algorithm that directly proposes solutions but rather enables
+      insights
+      into how machines operate, both at an individual and group level. We look closer at two main components of the
       daily report.
     </p>
     <h4 style="text-align: left;">Mass Moved</h4>
-    <p>In the interactive map, the user can select machine type, and the amount of clusters for dump
-      and load regions to display. Drone images from Skaret and Nordlandsdalen are overlayed in the map for better
-      visuals on how the region changes over time as construction progresses. An aglomerate clustering and convex
-      hull algorithm is used to plot polygons of load and dump regions. The ineractive plot informs on quantity moved
-      between regions, the top workers of the day (tons/hr), and total mass moved for each material type.
+    <p>In the interactive map, the user can select the machine type and the amount of clusters for dump
+      and load regions to display. Drone images from Skaret and Nordlandsdalen are overlaid on the map for better
+      visuals of how the region changes over time as construction progresses. An agglomerative clustering and convex
+      hull algorithm is used to plot polygons of load and dump regions. The interactive plot informs on the quantity
+      moved
+      between regions, the top workers of the day (tons/hr), and the total mass moved for each material type.
     </p>
     <figure>
       <iframe src="interact_static_ver.html" width="100%" , height="425"></iframe>
