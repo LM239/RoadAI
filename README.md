@@ -1,6 +1,7 @@
 # RoadAI
 
-Team NoDig's code for the RoadAI competition.\\
+Team NoDig's code for the RoadAI competition.
+
 [GitHub repository](https://github.com/LM239/RoadAI)
 
 # Prerequisite
