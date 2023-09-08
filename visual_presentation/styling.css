@@ -6,8 +6,10 @@
   color: White;
 
   /* centering text */
-  text-align: center; /* horizontally */
-  line-height: 55px; /* vertically */
+  text-align: center;
+  /* horizontally */
+  line-height: 55px;
+  /* vertically */
 
   text-decoration: none;
 }
@@ -40,7 +42,8 @@
 }
 
 body {
-  text-align: center; /* Center-align content within the body */
+  text-align: center;
+  /* Center-align content within the body */
   width: 75%;
   margin: auto;
   font-family: "Roboto", sans-serif;
@@ -52,7 +55,8 @@ p {
 }
 
 iframe {
-  border: none; /* This removes the border around the iframe */
+  border: none;
+  /* This removes the border around the iframe */
 }
 
 h3 {
@@ -65,8 +69,10 @@ h3 {
 }
 
 .text {
-  flex: 2; /* Adjust the flex value as needed */
-  padding: 20px; /* Reduced padding */
+  flex: 2;
+  /* Adjust the flex value as needed */
+  padding: 20px;
+  /* Reduced padding */
   text-align: left;
 }
 
@@ -78,10 +84,13 @@ h3 {
 
 /* Center the container */
 .centered-textbox {
-  text-align: center; /* Center-align the container */
+  text-align: center;
+  /* Center-align the container */
   padding: 20px;
-  margin: 0 auto; /* Horizontally center the container */
-  width: 50%; /* Adjust the width as needed */
+  margin: 0 auto;
+  /* Horizontally center the container */
+  width: 50%;
+  /* Adjust the width as needed */
 }
 
 /* Left-align the text inside the container */
@@ -100,8 +109,23 @@ a {
 
 /* Style for the iframe */
 .responsive-iframe {
-  width: 140%; /* Adjust the width as needed (e.g., 120% for wider than 100%) */
-  height: 400px; /* Set the desired height */
+  width: 140%;
+  /* Adjust the width as needed (e.g., 120% for wider than 100%) */
+  height: 400px;
+  /* Set the desired height */
   border: none;
-  margin-left: -20%; /* Center horizontally */
+  margin-left: -20%;
+  /* Center horizontally */
+}
+
+.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+caption {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 15px;
+  /* Add space below the caption */
 }
