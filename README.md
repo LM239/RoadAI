@@ -2,6 +2,8 @@
 
 Team NoDig's code for the RoadAI competition
 
+A [link](https://github.com/LM239/RoadAI) to our GitHub repository
+
 # Prerequisite
 - Python >= 3.11.1
 - VSCode
@@ -22,8 +24,8 @@ Team NoDig's code for the RoadAI competition
 
 # Article submitted to Nordic Machine Intelligence (NMI)
 
-- [PDF] (nrk.no)
-- [Tex file](vg.no)
+- [PDF](https://nrk.no)
+- [Tex file](https://vg.no)
 
 # Visual presentation
 
