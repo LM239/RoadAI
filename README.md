@@ -1,8 +1,7 @@
 # RoadAI
 
-Team Nodig's code for the RoadAI competition
+Team NoDig's code for the RoadAI competition
 
-A GitHub repository can be found [here](https://lm239.github.io/RoadAI/visual_presentation/)
 # Prerequisite
 - Python >= 3.11.1
 - VSCode
@@ -21,6 +20,14 @@ A GitHub repository can be found [here](https://lm239.github.io/RoadAI/visual_pr
 7) Click on link to open jupyter notebook in the browser
 8) Visit and run notebooks
 
+# Article submitted to Nordic Machine Intelligence (NMI)
+
+- [PDF] (nrk.no)
+- [Tex file](vg.no)
+
+# Visual presentation
+
+[Here](https://lm239.github.io/RoadAI/visual_presentation/) is our visual presentation
 # Notebooks
 
 - PDF
@@ -32,3 +39,4 @@ A GitHub repository can be found [here](https://lm239.github.io/RoadAI/visual_pr
 - Code
   - [Automated load and dump detection with LightGBM](https://github.com/LM239/RoadAI/blob/main/load_dump_lightgbm_demo.ipynb)
   - [Daily report](https://github.com/LM239/RoadAI/blob/main/daily_report_demo.ipynb)
+
