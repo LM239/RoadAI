@@ -237,23 +237,6 @@ def calculate_distance_and_time(
     return distance, time
 
 
-def load_training_csv_files(
-    name_of_data_set: str,
-) -> pd.DataFrame:
-    """
-    The function `load_training_csv_files` loads a CSV file as a pandas DataFrame from a specified
-    directory.
-
-    :param name_of_data_set: The parameter `name_of_data_set` is a string that represents the name of
-    the CSV file that you want to load as a training dataset
-    :type name_of_data_set: str
-    :return: a pandas DataFrame.
-    """
-    return pd.read_csv(
-        f"data/ml_model_data/training_data/{name_of_data_set}", delimiter=","
-    )
-
-
 def split_data_into_training_and_validation(
     df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
