@@ -109,6 +109,7 @@ class PrepareMachineData:
             self.stats.day_speeds.append(speed_ms_i_minus_1)
 
     def construct_df_for_training(self, group_size) -> pd.DataFrame:
+        # Data to be added to the DataFrame
         load_times = [load.timestamp for load in self.machine.all_loads]
         dump_times = [dump.timestamp for dump in self.machine.all_dumps]
         uncertainty = [point.uncertainty for point in self.machine.all_positions]
@@ -140,7 +141,7 @@ class PrepareMachineData:
 
         output_labels = np.zeros_like(self.stats.day_times)
         for i in range(len(output_labels)):
-            current_time = self.stats.day_times[i]  # The current timestamp
+            current_time = self.stats.day_times[i]
             if current_time in load_times:
                 output_labels[i] = "Load"
             elif current_time in dump_times:
@@ -154,7 +155,7 @@ class PrepareMachineData:
             self.stats.day_acceleration.append(np.nan)
         lat1_minus_lat0.append(lat1_minus_lat0[-1])
         lon1_minus_lon0.append(lon1_minus_lon0[-1])
-        # construct the df
+
         df = pd.DataFrame(
             {
                 "MachineID": [self.machine.machine_id] * len(self.stats.day_times),
@@ -176,7 +177,7 @@ class PrepareMachineData:
         last_row = df.query('output_labels == "Dump"').index[-1]
         df = df.loc[:last_row]
 
-        # Merge 'group_size' data points into one. Start making an empty DataFrame
+        ##### Merge 'group_size' data points into one. Start making an empty DataFrame #####
         result_df = pd.DataFrame()
 
         # Transform original DataFrame (df) into a new DataFrame (result_df) with additional features
