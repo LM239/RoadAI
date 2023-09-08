@@ -1,8 +1,7 @@
 # RoadAI
 
 Team NoDig's code for the RoadAI competition.
-
-A [link](https://github.com/LM239/RoadAI) to our GitHub repository
+[GitHub repository](https://github.com/LM239/RoadAI)
 
 # Prerequisite
 - Python >= 3.11.1
@@ -29,7 +28,7 @@ A [link](https://github.com/LM239/RoadAI) to our GitHub repository
 
 # Visual presentation
 
-On can find the visual presentation [here](https://lm239.github.io/RoadAI/visual_presentation/).
+One can find the visual presentation [here](https://lm239.github.io/RoadAI/visual_presentation/).
 # Notebooks
 
 - PDF
