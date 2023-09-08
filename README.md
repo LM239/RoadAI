@@ -1,6 +1,6 @@
 # RoadAI
 
-Team NoDig's code for the RoadAI competition
+Team NoDig's code for the RoadAI competition.
 
 A [link](https://github.com/LM239/RoadAI) to our GitHub repository
 
@@ -29,7 +29,7 @@ A [link](https://github.com/LM239/RoadAI) to our GitHub repository
 
 # Visual presentation
 
-[Here](https://lm239.github.io/RoadAI/visual_presentation/) is our visual presentation
+On can find the visual presentation [here](https://lm239.github.io/RoadAI/visual_presentation/).
 # Notebooks
 
 - PDF
