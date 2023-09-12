@@ -330,7 +330,8 @@ class LoadDumpLightGBM:
         Custom parameters for LightGBM training.
     booster_record_eval : dict
         Dictionary to record evaluation metrics during model training.
-
+    trips_folder: str
+        Directory of gps trips data. Defaults to 'trips'
     Methods
     -------
     load_data()
@@ -357,8 +358,10 @@ class LoadDumpLightGBM:
         gps_data_dir: str = "data/GPSData",
         work_dir: str = "data/ml_model_data",
         machine_type: Literal["Truck", "Dumper"] = "Truck",
+        trips_folder: str = "trips"
     ) -> None:
         #  check if folder structure is ok, verify nb_days
+        self.trips_folder = trips_folder
         self._check_folder_structure(gps_data_dir)
         self._validate_nb_days(nb_days, gps_data_dir)
 
@@ -386,20 +389,20 @@ class LoadDumpLightGBM:
         self.lgbm_custom_params = CustomLightgbmParams()
 
     def _check_folder_structure(self, gps_data_dir: str):
-        for folder in ["trips", "tripsInfo"]:
+        for folder in [self.trips_folder, "tripsInfo"]:
             folder_path = os.path.join(gps_data_dir, folder)
             if not os.path.isdir(folder_path):
                 raise FileNotFoundError(
-                    f"Please have folders 'trips' and 'tripsInfo' located in {gps_data_dir}"
+                    f"Please have folders '{self.trips_folder}' and 'tripsInfo' located in {gps_data_dir}"
                 )
-        print("Folders 'trips' and 'tripsInfo' correctly set up")
+        print("Folders '{trips_folder}' and 'tripsInfo' correctly set up")
 
     def _validate_nb_days(self, nb_days: int | Literal["all"], gps_data_dir: str):
         if isinstance(nb_days, int):
-            if nb_days > len(os.listdir(os.path.join(gps_data_dir, "trips"))):
+            if nb_days > len(os.listdir(os.path.join(gps_data_dir, self.trips_folder))):
                 raise ValueError(
                     f"The 'nb_days' parameter ({nb_days}) cannot be greater than the number"
-                    f"of days in GPSData/trips: ({len(os.listdir(os.path.join(gps_data_dir, 'trips')))})."
+                    f"of days in GPSData/trips: ({len(os.listdir(os.path.join(gps_data_dir, self.trips_folder)))})."
                 )
         elif isinstance(nb_days, str):
             if nb_days.lower() != "all":
@@ -412,7 +415,7 @@ class LoadDumpLightGBM:
     def load_data(self) -> None:
         self.days = [
             csv_file.split(".csv")[0]
-            for csv_file in os.listdir(f"{self.gps_data_dir + '/trips'}")
+            for csv_file in os.listdir(f"{self.gps_data_dir + f'/{self.trips_folder}'}")
         ]
         print("Start at day ", self.days[self.starting_from])
         print("For machine type: ", self.machine_type)
