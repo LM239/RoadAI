@@ -11,10 +11,10 @@ class TripsLoader:
     Loads trips for one day
     """
 
-    def __init__(self, datestring: str, gps_data_dir: str = "data/GPSData") -> None:
+    def __init__(self, datestring: str, gps_data_dir: str = "data/GPSData", trips_folder: str ="trips") -> None:
         self._machines: dict[int, Machine] = {}
         self.day: str = datestring
-        info_df, trip_df = load_gps_data(f"{datestring}.csv", gps_data_dir)
+        info_df, trip_df = load_gps_data(f"{datestring}.csv", gps_data_dir, trips_folder)
 
         grouped_df = trip_df.groupby("TripLogId")
         unique = set(trip_df["TripLogId"].unique())
