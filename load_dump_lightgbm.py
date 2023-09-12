@@ -375,7 +375,7 @@ class LoadDumpLightGBM:
             nb_days
             if isinstance(nb_days, int)
             else len(
-                os.listdir(gps_data_dir + "/trips")
+                os.listdir(gps_data_dir + f"/{self.trips_folder}")
             )  # 'else' is executed if nb_days is a valid string ('all')
         )
         self.group_size = group_size
@@ -429,7 +429,7 @@ class LoadDumpLightGBM:
         for day in tqdm(
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
-            trip = dataloader.TripsLoader(day)
+            trip = dataloader.TripsLoader(day, trips_folder = self.trips_folder)
             for _, machine in trip._machines.items():
                 if machine.machine_type == self.machine_type:
                     automated_for_given_machine = PrepareMachineData(machine)
