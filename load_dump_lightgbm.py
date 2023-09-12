@@ -1,26 +1,27 @@
-import helper_functions.dataloader as dataloader
-from pathlib import Path
-from pydantic import BaseModel
-from tqdm import tqdm
-from datetime import datetime
-import numpy as np
-import pandas as pd
 import os
-from sklearn.model_selection import train_test_split
-from helper_functions.schemas import Machine
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Literal
+
 import geopy.distance
-import matplotlib.pyplot as plt
 import joblib
 import lightgbm as lgbm
-import time
-from lightgbm import early_stopping, record_evaluation, LGBMModel
-from sklearn.metrics import (
-    classification_report,
-    ConfusionMatrixDisplay,
-)
-from typing import Literal
-from helper_functions.schemas import Position
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from lightgbm import LGBMModel, early_stopping, record_evaluation
 from prettytable import PrettyTable
+from pydantic import BaseModel
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    classification_report,
+)
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
+import helper_functions.dataloader as dataloader
+from helper_functions.schemas import Machine, Position
 
 
 class Stats(BaseModel):
@@ -204,16 +205,21 @@ class PrepareMachineData:
                     elif row[col] == "Dump":
                         return "Dump"
             return "Driving"
-
+        
+        
         result_df["output_labels"] = result_df.apply(custom_function, axis=1)
         result_df.rename(columns={"DateTime_0": "DateTime"}, inplace=True)
         result_df.rename(columns={"MachineID_0": "MachineID"}, inplace=True)
+        
+        result_df.insert(2, "TimeInterval", (result_df[f"DateTime_{group_size-1}"] - result_df["DateTime"]).dt.total_seconds())
+        
+        
         for i in range(group_size):
             result_df = result_df.drop(f"output_labels_{i}", axis=1)
             if i != 0:
                 result_df = result_df.drop(f"DateTime_{i}", axis=1)
                 result_df = result_df.drop(f"MachineID_{i}", axis=1)
-
+        
         return result_df
 
 
@@ -254,7 +260,7 @@ def split_data_into_training_and_validation(
     - y_test: Labels corresponding to X_test
     """
     X, y = (
-        df.drop(["MachineID", "output_labels", "DateTime"], axis=1),
+        df.drop(["MachineID", "output_labels", "DateTime", "TimeInterval"], axis=1),
         df["output_labels"],
     )
 
@@ -425,7 +431,6 @@ class LoadDumpLightGBM:
 
         # Make sure original console behaviour is stored
         # Pandas raises message for day 03-10-2022
-
         for day in tqdm(
             self.days[self.starting_from : self.starting_from + self.nb_days]
         ):
@@ -477,6 +482,14 @@ class LoadDumpLightGBM:
                 sep=",",
                 index=False,
             )
+            
+            sum_train = df_training_all["TimeInterval"].sum()
+            sum_test = df_testing_all["TimeInterval"].sum()
+            train_rows = df_training_all.shape[0]
+            test_rows = df_testing_all.shape[0]
+            total_rows = train_rows + test_rows
+            average_time_delta = average_time_delta = (sum_train + sum_test) / total_rows
+            print(f"Average time delta in group_size of {self.group_size}: {round(average_time_delta, 3)} seconds")
 
     def fit_model(self, stopping_rounds: int = 50) -> None:
         df_training = pd.read_csv(f"{self.work_dir_day}/{self.training_data_name}.csv")
@@ -558,10 +571,10 @@ class LoadDumpLightGBM:
         driving_label, dump_label, load_label = loaded_model.classes_
 
         pred_testing_probas: np.ndarray = loaded_model.predict_proba(
-            df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
+            df_testing.drop(["output_labels", "MachineID", "DateTime", "TimeInterval"], axis=1)
         )
         pred_testing_labels: np.ndarray = loaded_model.predict(
-            df_testing.drop(["output_labels", "MachineID", "DateTime"], axis=1)
+            df_testing.drop(["output_labels", "MachineID", "DateTime", "TimeInterval"], axis=1)
         )
 
         df_testing[f"proba_{driving_label}"] = pred_testing_probas[:, 0]
